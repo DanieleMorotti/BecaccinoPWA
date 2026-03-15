@@ -53,4 +53,6 @@ quires recent sign‑in. (firebase.google.com
 
 ## APP
 
+- do a kind of build like for showscout ai, to be more efficient (?) and avoid cdn import
+    * if done, change the config settings for firebase, login in the console and copy the npm settings instead of cdn
 - add history available with a small history button with all the played cards in some pretty way
