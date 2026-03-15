@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1f2d27" />
+    <title>Becaccino - PWA</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;700&family=Space+Grotesk:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Becaccino online</p>
+          <h1>Becaccino</h1>
+          <p class="subtitle">Crea una stanza, scegli le squadre e gioca 2v2 in tempo reale.</p>
+        </div>
+        <div class="status" id="connection-status">Offline</div>
+      </header>
+
+      <section id="setup" class="panel">
+        <h2>Inizia in 30 secondi</h2>
+        <ol class="steps">
+          <li>Scegli un nome giocatore</li>
+          <li>Crea una stanza o inserisci il codice</li>
+          <li>Dividetevi in squadre e avviate la partita</li>
+        </ol>
+        <div class="grid">
+          <label class="field">
+            <span>Nome giocatore</span>
+            <input id="player-name" maxlength="18" placeholder="Es. Luca" />
+          </label>
+          <label class="field">
+            <span>Codice stanza</span>
+            <input
+              id="room-code-input"
+              maxlength="8"
+              placeholder="ABCD12"
+              autocapitalize="characters"
+            />
+          </label>
+          <label class="field">
+            <span>Punti per vincere</span>
+            <select id="target-points">
+              <option value="31">31 punti</option>
+              <option value="41">41 punti</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="create-room" class="primary">Crea stanza</button>
+          <button id="join-room">Entra con codice</button>
+        </div>
+        <p class="hint">Condividi il codice stanza con i tuoi amici. Serve essere in 4.</p>
+      </section>
+
+      <section id="room" class="panel hidden">
+        <div class="room-head">
+          <div>
+            <p class="eyebrow">Stanza</p>
+            <h2 id="room-code">----</h2>
+            <p id="room-meta" class="hint"></p>
+          </div>
+          <div class="room-actions">
+            <button id="leave-room" class="ghost">Esci</button>
+          </div>
+        </div>
+
+        <div id="lobby" class="stack">
+          <h3>Lobby</h3>
+          <ul id="player-list" class="list"></ul>
+          <div id="team-setup" class="team-setup">
+            <h4>Squadre 2v2</h4>
+            <p class="hint">L'host assegna i giocatori alla squadra A o B.</p>
+            <div id="team-assignments" class="team-list"></div>
+          </div>
+          <div class="actions">
+            <button id="toggle-ready">Pronto</button>
+            <button id="start-game" class="primary">Avvia partita</button>
+          </div>
+        </div>
+
+        <div id="game" class="stack hidden">
+          <div class="scoreboard">
+            <div>
+              <p class="eyebrow">Squadra A</p>
+              <h3 id="team-a-names">--</h3>
+              <p class="hint">Punti partita: <strong id="team-a-score">0</strong></p>
+              <p class="hint">Punti mano: <strong id="team-a-hand">0</strong></p>
+            </div>
+            <div>
+              <p class="eyebrow">Squadra B</p>
+              <h3 id="team-b-names">--</h3>
+              <p class="hint">Punti partita: <strong id="team-b-score">0</strong></p>
+              <p class="hint">Punti mano: <strong id="team-b-hand">0</strong></p>
+            </div>
+          </div>
+
+          <div class="game-head">
+            <div>
+              <h3>Partita</h3>
+              <p id="turn-indicator" class="hint"></p>
+            </div>
+            <div class="badge" id="round-indicator">Mano 1</div>
+          </div>
+
+          <div id="briscola-picker" class="briscola hidden">
+            <p class="hint">Scegli la briscola per questa mano:</p>
+            <div class="actions">
+              <button data-suit="CUPS">Coppe</button>
+              <button data-suit="COINS">Denari</button>
+              <button data-suit="CLUBS">Bastoni</button>
+              <button data-suit="SWORDS">Spade</button>
+            </div>
+          </div>
+
+          <div class="table table-layout">
+            <h4>Tavolo</h4>
+            <p id="briscola-indicator" class="hint"></p>
+            <div class="table-surface">
+              <div class="seat seat-top">
+                <div class="seat-name" id="seat-top-name">--</div>
+                <div class="seat-card" id="seat-top-card"></div>
+              </div>
+              <div class="seat seat-left">
+                <div class="seat-name" id="seat-left-name">--</div>
+                <div class="seat-card" id="seat-left-card"></div>
+              </div>
+              <div class="seat seat-right">
+                <div class="seat-name" id="seat-right-name">--</div>
+                <div class="seat-card" id="seat-right-card"></div>
+              </div>
+              <div class="seat seat-bottom">
+                <div class="seat-name" id="seat-bottom-name">--</div>
+                <div class="seat-card" id="seat-bottom-card"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hand">
+            <h4>La tua mano</h4>
+            <div id="hand-cards" class="card-row hand-row"></div>
+          </div>
+
+          <div class="actions">
+            <button id="end-game" class="ghost">Chiudi partita</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel note">
+        <h3>Nota</h3>
+        <p>La logica del gioco e una base realtime. Dimmi le regole esatte del tuo Becaccino e la completiamo.</p>
+      </section>
+    </main>
+
+    <noscript>Questa applicazione richiede JavaScript attivo.</noscript>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
