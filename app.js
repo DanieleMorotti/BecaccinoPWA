@@ -76,7 +76,11 @@ const el = {
   seatRightCard: document.getElementById("seat-right-card"),
   seatBottomName: document.getElementById("seat-bottom-name"),
   seatBottomCard: document.getElementById("seat-bottom-card"),
-  playerName: document.getElementById("player-name"),
+  createPanel: document.getElementById("create-panel"),
+  joinPanel: document.getElementById("join-panel"),
+  modeButtons: Array.from(document.querySelectorAll(".mode-button")),
+  playerNameCreate: document.getElementById("player-name-create"),
+  playerNameJoin: document.getElementById("player-name-join"),
   roomCodeInput: document.getElementById("room-code-input"),
   targetPoints: document.getElementById("target-points"),
   createRoom: document.getElementById("create-room"),
@@ -89,10 +93,16 @@ const el = {
 
 let unsubRoom = null;
 let unsubPlayers = null;
+let activeMode = "create";
 
 const savedName = localStorage.getItem("becaccino:name");
 if (savedName) {
-  el.playerName.value = savedName;
+  if (el.playerNameCreate) {
+    el.playerNameCreate.value = savedName;
+  }
+  if (el.playerNameJoin) {
+    el.playerNameJoin.value = savedName;
+  }
 }
 
 if ("serviceWorker" in navigator) {
@@ -123,13 +133,36 @@ function setHidden(element, hidden) {
   element.classList.toggle("hidden", hidden);
 }
 
+function setMode(mode) {
+  activeMode = mode === "join" ? "join" : "create";
+  if (el.createPanel) {
+    setHidden(el.createPanel, activeMode !== "create");
+  }
+  if (el.joinPanel) {
+    setHidden(el.joinPanel, activeMode !== "join");
+  }
+  el.modeButtons.forEach((button) => {
+    const isActive = button.dataset.mode === activeMode;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
 function getPlayerName() {
-  const name = el.playerName.value.trim();
+  const input = activeMode === "join" ? el.playerNameJoin : el.playerNameCreate;
+  const name = input?.value.trim() || "";
   if (!name) {
     alert("Inserisci un nome giocatore.");
+    input?.focus();
     return null;
   }
   localStorage.setItem("becaccino:name", name);
+  if (el.playerNameCreate) {
+    el.playerNameCreate.value = name;
+  }
+  if (el.playerNameJoin) {
+    el.playerNameJoin.value = name;
+  }
   return name;
 }
 
@@ -925,6 +958,10 @@ el.leaveRoom.addEventListener("click", leaveRoom);
 el.toggleReady.addEventListener("click", toggleReady);
 el.startGame.addEventListener("click", startGame);
 el.endGame.addEventListener("click", endGame);
+el.modeButtons.forEach((button) => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
+});
+setMode(activeMode);
 
 el.briscolaPicker.querySelectorAll("button[data-suit]").forEach((button) => {
   button.addEventListener("click", () => chooseBriscola(button.dataset.suit));

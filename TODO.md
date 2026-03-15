@@ -41,3 +41,16 @@ Firebase Auth doesn’t have a TTL setting. The typical approach is:
 If users delete themselves in the client, Firebase supports deleteUser(...) but re
 quires recent sign‑in. (firebase.google.com
 (https://firebase.google.com/docs/auth/web/manage-users?utm_source=openai))
+
+
+## UI
+
+- Still make it more essential in the homepage
+- check how the table / game is rendered with 4 people
+- add a logo for the homepage / create an icon
+- make the cards zoomable because in small screens how do you deal with strict width?
+
+
+## APP
+
+- add history available with a small history button with all the played cards in some pretty way

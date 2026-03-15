@@ -16,8 +16,8 @@
   </head>
   <body>
     <main class="app">
-      <header class="hero">
-        <div>
+      <header class="app-bar">
+        <div class="brand">
           <p class="eyebrow">Becaccino online</p>
           <h1>Becaccino</h1>
           <p class="subtitle">Crea una stanza, scegli le squadre e gioca 2v2 in tempo reale.</p>
@@ -25,25 +25,31 @@
         <div class="status" id="connection-status">Offline</div>
       </header>
 
-      <section id="setup" class="panel">
-        <h2>Inizia in 30 secondi</h2>
-        <ol class="steps">
-          <li>Scegli un nome giocatore</li>
-          <li>Crea una stanza o inserisci il codice</li>
-          <li>Dividetevi in squadre e avviate la partita</li>
-        </ol>
-        <div class="grid">
+      <section id="setup" class="panel home">
+        <div class="home-head">
+          <div>
+            <h2>Pronto a giocare?</h2>
+            <p class="hint">Scegli se creare una nuova stanza o entrare con un codice.</p>
+          </div>
+        </div>
+
+        <div class="mode-toggle" role="tablist" aria-label="Modalita stanza">
+          <button class="mode-button active" type="button" data-mode="create" aria-pressed="true">
+            Crea stanza
+          </button>
+          <button class="mode-button" type="button" data-mode="join" aria-pressed="false">
+            Entra con codice
+          </button>
+        </div>
+
+        <div id="create-panel" class="mode-panel">
           <label class="field">
             <span>Nome giocatore</span>
-            <input id="player-name" maxlength="18" placeholder="Es. Luca" />
-          </label>
-          <label class="field">
-            <span>Codice stanza</span>
             <input
-              id="room-code-input"
-              maxlength="8"
-              placeholder="ABCD12"
-              autocapitalize="characters"
+              id="player-name-create"
+              maxlength="18"
+              placeholder="Es. Luca"
+              autocomplete="name"
             />
           </label>
           <label class="field">
@@ -53,12 +59,36 @@
               <option value="41">41 punti</option>
             </select>
           </label>
+          <div class="actions">
+            <button id="create-room" class="primary">Crea stanza</button>
+          </div>
+          <p class="hint">Condividi il codice stanza con i tuoi amici. Serve essere in 4.</p>
         </div>
-        <div class="actions">
-          <button id="create-room" class="primary">Crea stanza</button>
-          <button id="join-room">Entra con codice</button>
+
+        <div id="join-panel" class="mode-panel hidden">
+          <label class="field">
+            <span>Nome giocatore</span>
+            <input
+              id="player-name-join"
+              maxlength="18"
+              placeholder="Es. Luca"
+              autocomplete="name"
+            />
+          </label>
+          <label class="field">
+            <span>Codice stanza</span>
+            <input
+              id="room-code-input"
+              maxlength="6"
+              placeholder="ABCD12"
+              autocapitalize="characters"
+            />
+          </label>
+          <div class="actions">
+            <button id="join-room" class="primary">Entra con codice</button>
+          </div>
+          <p class="hint">Inserisci il codice stanza inviato dall'host.</p>
         </div>
-        <p class="hint">Condividi il codice stanza con i tuoi amici. Serve essere in 4.</p>
       </section>
 
       <section id="room" class="panel hidden">
@@ -153,11 +183,6 @@
             <button id="end-game" class="ghost">Chiudi partita</button>
           </div>
         </div>
-      </section>
-
-      <section class="panel note">
-        <h3>Nota</h3>
-        <p>La logica del gioco e una base realtime. Dimmi le regole esatte del tuo Becaccino e la completiamo.</p>
       </section>
     </main>
 
