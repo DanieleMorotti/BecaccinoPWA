@@ -29,6 +29,34 @@ body {
   min-height: 100vh;
 }
 
+body.in-game {
+  background: radial-gradient(circle at 20% 20%, rgba(22, 70, 52, 0.75), rgba(6, 24, 18, 0.95)),
+    url("assets/table.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #f7f2e7;
+  overflow: hidden;
+}
+
+body.in-game .app {
+  max-width: none;
+  padding: 0;
+  height: 100vh;
+}
+
+body.in-game .app-bar,
+body.in-game #setup,
+body.in-game #lobby,
+body.in-game .room-head {
+  display: none;
+}
+
+body.in-game #room {
+  height: 100%;
+  padding: 0;
+}
+
 .app {
   max-width: 980px;
   margin: 0 auto;
@@ -116,6 +144,14 @@ h4 {
   padding: 24px;
   border: 1px solid var(--border);
   box-shadow: 0 16px 32px rgba(20, 30, 26, 0.08);
+}
+
+.panel.playing {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  height: 100%;
 }
 
 .home-head {
@@ -262,6 +298,15 @@ button.ghost {
   gap: 20px;
 }
 
+.panel.playing .room-head {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(28, 35, 32, 0.12);
+  margin-bottom: 16px;
+}
+
 .room-actions {
   display: flex;
   gap: 12px;
@@ -335,41 +380,123 @@ button.ghost {
   gap: 20px;
 }
 
-.scoreboard {
+.game-view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 12px 72px;
+  position: relative;
+}
+
+.game-hud {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-  background: var(--card-muted);
-  border-radius: 16px;
-  padding: 16px;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 10px 12px;
   border: 1px solid rgba(28, 35, 32, 0.12);
+  backdrop-filter: blur(6px);
+}
+
+.hud-scores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 0.85rem;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.hud-team {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(241, 236, 227, 0.9);
+}
+
+.hud-label {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.hud-score {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.hud-hand {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.hud-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.hud-meta #turn-indicator,
+.hud-meta #briscola-indicator {
+  color: var(--ink);
 }
 
 .briscola {
-  background: #fff4e3;
-  border-radius: 14px;
-  padding: 12px 14px;
+  background: rgba(255, 244, 227, 0.92);
+  border-radius: 12px;
+  padding: 10px 12px;
   border: 1px solid rgba(201, 109, 63, 0.3);
+  backdrop-filter: blur(4px);
 }
 
-.table,
+.table {
+  background: rgba(8, 25, 19, 0.45);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 12px;
+  backdrop-filter: blur(4px);
+  color: #f7f2e7;
+  flex: 1;
+  min-height: 0;
+}
+
 .hand {
-  background: linear-gradient(rgba(251, 248, 241, 0.92), rgba(251, 248, 241, 0.92)),
-    url("assets/table.jpg");
-  background-size: cover;
-  background-position: center;
+  background: rgba(255, 255, 255, 0.96);
   border-radius: 16px;
-  border: 1px dashed rgba(28, 35, 32, 0.2);
-  padding: 16px;
+  border: 1px solid rgba(28, 35, 32, 0.12);
+  padding: 10px;
+  color: var(--ink);
+  backdrop-filter: blur(6px);
+  max-height: 42vh;
+  overflow: hidden;
+}
+
+.game-actions {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 30;
+}
+
+.game-actions button {
+  padding: 8px 12px;
+  font-size: 0.85rem;
 }
 
 .table-layout .table-surface {
   position: relative;
-  min-height: 300px;
+  min-height: clamp(240px, 45vh, 420px);
   border-radius: 16px;
-  padding: 24px;
-  background: rgba(31, 45, 39, 0.08);
-  margin-top: 12px;
+  padding: 16px;
+  background: rgba(8, 20, 16, 0.35);
+  margin-top: 0;
 }
 
 .seat {
@@ -379,44 +506,45 @@ button.ghost {
   align-items: center;
   justify-items: center;
   text-align: center;
+  width: 96px;
 }
 
 .seat-name {
   font-size: 0.85rem;
   color: #1c2320;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(28, 35, 32, 0.12);
 }
 
 .seat-card {
-  min-height: 110px;
-  min-width: 90px;
+  min-height: 72px;
+  min-width: 64px;
   display: grid;
   place-items: center;
 }
 
 .seat-top {
-  top: 12px;
+  top: 2%;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .seat-left {
-  left: 12px;
+  left: 2%;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .seat-right {
-  right: 12px;
+  right: 2%;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .seat-bottom {
-  bottom: 12px;
+  bottom: 2%;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -457,6 +585,17 @@ button.ghost {
   box-shadow: 0 6px 14px rgba(30, 42, 36, 0.16);
 }
 
+.seat-card .card {
+  min-width: 64px;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.seat-card .card img {
+  width: 54px;
+  box-shadow: 0 4px 10px rgba(10, 16, 14, 0.3);
+}
+
 .card .label {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.75rem;
@@ -464,16 +603,51 @@ button.ghost {
 }
 
 .hand-row {
-  gap: 0;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .hand-row .card {
-  margin-right: -18px;
-  transform: rotate(-2deg);
+  margin-right: 0;
+  transform: none;
 }
 
 .hand-row .card:nth-child(2n) {
-  transform: rotate(2deg);
+  transform: none;
+}
+
+.hand-drawer {
+  display: grid;
+  gap: 12px;
+}
+
+.hand-drawer .ghost {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+}
+
+body.in-game .hand-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 12px 14px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+body.in-game .hand-drawer > * {
+  pointer-events: auto;
+}
+
+body.in-game #hand-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 @media (max-width: 720px) {
@@ -489,5 +663,51 @@ button.ghost {
   .room-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  #game {
+    padding: 14px;
+  }
+
+  .table-layout .table-surface {
+    min-height: 280px;
+    padding: 18px;
+  }
+
+  .seat {
+    width: 100px;
+  }
+
+  .card {
+    min-width: 76px;
+  }
+
+  .card img {
+    width: 68px;
+  }
+
+  .game-view {
+    padding: 10px 10px 68px;
+  }
+
+  .hud-scores {
+    grid-template-columns: 1fr;
+    font-size: 0.8rem;
+  }
+
+  .hud-team {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .hud-hand {
+    display: none;
+  }
+
+  .seat-card .card {
+    min-width: 56px;
+  }
+
+  .seat-card .card img {
+    width: 46px;
   }
 }

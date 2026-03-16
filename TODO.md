@@ -53,6 +53,9 @@ quires recent sign‑in. (firebase.google.com
 
 ## APP
 
+- rebuild with google ai studio like showscout with build and react for better ux ui
+- when the hand is shown, 5 cards per row to avoid scrolling overflow + remove the name of the cards, the image is enough 
+- check if suit is mandatory or not checked, in case, the only playable cards must be the allowed ones.
 - do a kind of build like for showscout ai, to be more efficient (?) and avoid cdn import
     * if done, change the config settings for firebase, login in the console and copy the npm settings instead of cdn
 - add history available with a small history button with all the played cards in some pretty way

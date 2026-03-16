@@ -112,33 +112,31 @@
             <div id="team-assignments" class="team-list"></div>
           </div>
           <div class="actions">
-            <button id="toggle-ready">Pronto</button>
             <button id="start-game" class="primary">Avvia partita</button>
           </div>
         </div>
 
-        <div id="game" class="stack hidden">
-          <div class="scoreboard">
-            <div>
-              <p class="eyebrow">Squadra A</p>
-              <h3 id="team-a-names">--</h3>
-              <p class="hint">Punti partita: <strong id="team-a-score">0</strong></p>
-              <p class="hint">Punti mano: <strong id="team-a-hand">0</strong></p>
+        <div id="game" class="game-view hidden">
+          <div class="game-hud">
+            <div class="hud-scores">
+              <div class="hud-team">
+                <span class="hud-label">A</span>
+                <span id="team-a-names">--</span>
+                <span class="hud-score" id="team-a-score">0</span>
+                <span class="hud-hand" id="team-a-hand">0</span>
+              </div>
+              <div class="hud-team">
+                <span class="hud-label">B</span>
+                <span id="team-b-names">--</span>
+                <span class="hud-score" id="team-b-score">0</span>
+                <span class="hud-hand" id="team-b-hand">0</span>
+              </div>
             </div>
-            <div>
-              <p class="eyebrow">Squadra B</p>
-              <h3 id="team-b-names">--</h3>
-              <p class="hint">Punti partita: <strong id="team-b-score">0</strong></p>
-              <p class="hint">Punti mano: <strong id="team-b-hand">0</strong></p>
+            <div class="hud-meta">
+              <span id="round-indicator" class="badge">Mano 1</span>
+              <span id="turn-indicator"></span>
+              <span id="briscola-indicator"></span>
             </div>
-          </div>
-
-          <div class="game-head">
-            <div>
-              <h3>Partita</h3>
-              <p id="turn-indicator" class="hint"></p>
-            </div>
-            <div class="badge" id="round-indicator">Mano 1</div>
           </div>
 
           <div id="briscola-picker" class="briscola hidden">
@@ -152,8 +150,6 @@
           </div>
 
           <div class="table table-layout">
-            <h4>Tavolo</h4>
-            <p id="briscola-indicator" class="hint"></p>
             <div class="table-surface">
               <div class="seat seat-top">
                 <div class="seat-name" id="seat-top-name">--</div>
@@ -174,12 +170,14 @@
             </div>
           </div>
 
-          <div class="hand">
-            <h4>La tua mano</h4>
-            <div id="hand-cards" class="card-row hand-row"></div>
+          <div class="hand-drawer">
+            <button id="toggle-hand" class="ghost">Mostra mano</button>
+            <div id="hand-panel" class="hand hidden">
+              <div id="hand-cards" class="card-row hand-row"></div>
+            </div>
           </div>
 
-          <div class="actions">
+          <div class="game-actions">
             <button id="end-game" class="ghost">Chiudi partita</button>
           </div>
         </div>

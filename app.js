@@ -76,6 +76,8 @@ const el = {
   seatRightCard: document.getElementById("seat-right-card"),
   seatBottomName: document.getElementById("seat-bottom-name"),
   seatBottomCard: document.getElementById("seat-bottom-card"),
+  toggleHand: document.getElementById("toggle-hand"),
+  handPanel: document.getElementById("hand-panel"),
   createPanel: document.getElementById("create-panel"),
   joinPanel: document.getElementById("join-panel"),
   modeButtons: Array.from(document.querySelectorAll(".mode-button")),
@@ -86,7 +88,6 @@ const el = {
   createRoom: document.getElementById("create-room"),
   joinRoom: document.getElementById("join-room"),
   leaveRoom: document.getElementById("leave-room"),
-  toggleReady: document.getElementById("toggle-ready"),
   startGame: document.getElementById("start-game"),
   endGame: document.getElementById("end-game"),
 };
@@ -94,6 +95,7 @@ const el = {
 let unsubRoom = null;
 let unsubPlayers = null;
 let activeMode = "create";
+let isHandOpen = window.matchMedia?.("(min-width: 900px)")?.matches ?? false;
 
 const savedName = localStorage.getItem("becaccino:name");
 if (savedName) {
@@ -195,6 +197,8 @@ function renderRoom() {
   if (!state.roomId || !state.room) {
     setHidden(el.setup, false);
     setHidden(el.roomSection, true);
+    document.body.classList.remove("in-game");
+    el.roomSection?.classList.remove("playing");
     return;
   }
 
@@ -207,8 +211,16 @@ function renderRoom() {
   el.roomMeta.textContent = `Host: ${hostName} | Giocatori: ${state.players.length}/${MAX_PLAYERS} | Target: ${target}`;
 
   const inLobby = state.room.status === "lobby";
+  const inGame = state.room.status === "playing";
+  const isHost = state.room.hostId === state.user?.uid;
   setHidden(el.lobby, !inLobby);
   setHidden(el.game, inLobby);
+  if (el.startGame) {
+    setHidden(el.startGame, !isHost);
+    el.startGame.disabled = !isHost;
+  }
+  document.body.classList.toggle("in-game", inGame);
+  el.roomSection.classList.toggle("playing", inGame);
 
   renderPlayers();
   renderTeamAssignments();
@@ -227,10 +239,24 @@ function renderPlayers() {
       player.id === meId ? " (tu)" : ""
     }`;
     const right = document.createElement("span");
-    right.textContent = player.ready ? "Pronto" : "In attesa";
+    right.textContent = "Presente";
     li.append(left, right);
     el.playerList.append(li);
   });
+}
+
+function countTeams(players) {
+  return players.reduce(
+    (acc, player) => {
+      if (player.team === "A") {
+        acc.A += 1;
+      } else if (player.team === "B") {
+        acc.B += 1;
+      }
+      return acc;
+    },
+    { A: 0, B: 0 }
+  );
 }
 
 function renderTeamAssignments() {
@@ -239,6 +265,7 @@ function renderTeamAssignments() {
   if (!state.room) return;
 
   const isHost = state.room.hostId === state.user?.uid;
+  const teamCounts = countTeams(state.players);
   state.players.forEach((player) => {
     const row = document.createElement("div");
     row.className = "team-row";
@@ -250,6 +277,8 @@ function renderTeamAssignments() {
     empty.textContent = "Scegli squadra";
     select.append(empty);
     ["A", "B"].forEach((team) => {
+      const isFull = teamCounts[team] >= 2 && player.team !== team;
+      if (isFull) return;
       const option = document.createElement("option");
       option.value = team;
       option.textContent = `Squadra ${team}`;
@@ -257,7 +286,13 @@ function renderTeamAssignments() {
     });
     select.value = player.team || "";
     select.disabled = !isHost;
-    select.addEventListener("change", () => updatePlayerTeam(player.id, select.value));
+    select.addEventListener("change", async () => {
+      const nextTeam = select.value;
+      const ok = await updatePlayerTeam(player.id, nextTeam);
+      if (!ok) {
+        select.value = player.team || "";
+      }
+    });
     row.append(name, select);
     el.teamAssignments.append(row);
   });
@@ -274,12 +309,23 @@ function renderGame() {
     el.briscolaIndicator.textContent = "";
     clearTableSeats();
     el.handCards.innerHTML = "";
+    if (el.toggleHand) {
+      setHidden(el.toggleHand, true);
+    }
+    if (el.handPanel) {
+      setHidden(el.handPanel, true);
+    }
     return;
   }
 
   if (state.room.status !== "playing") {
     return;
   }
+
+  if (el.toggleHand) {
+    setHidden(el.toggleHand, false);
+  }
+  setHandOpen(isHandOpen);
 
   const meId = state.user?.uid;
   const me = state.players.find((player) => player.id === meId);
@@ -323,6 +369,13 @@ function renderGame() {
   });
 
   renderBriscolaPicker();
+}
+
+function setHandOpen(open) {
+  isHandOpen = open;
+  if (!el.handPanel || !el.toggleHand) return;
+  setHidden(el.handPanel, !open);
+  el.toggleHand.textContent = open ? "Nascondi mano" : "Mostra mano";
 }
 
 function renderScores() {
@@ -423,12 +476,19 @@ function renderBriscolaPicker() {
 }
 
 async function updatePlayerTeam(playerId, team) {
-  if (!state.roomId) return;
+  if (!state.roomId) return false;
   if (!team) {
     await updateDoc(playerRef(state.roomId, playerId), { team: null });
-    return;
+    return true;
+  }
+  const current = state.players.find((player) => player.id === playerId);
+  const counts = countTeams(state.players);
+  if (counts[team] >= 2 && current?.team !== team) {
+    alert("La squadra selezionata e gia completa.");
+    return false;
   }
   await updateDoc(playerRef(state.roomId, playerId), { team });
+  return true;
 }
 
 const SUITS = [
@@ -688,6 +748,11 @@ async function joinRoom() {
 
 async function leaveRoom() {
   if (!state.roomId || !state.user) return;
+  const message =
+    state.room?.status === "playing"
+      ? "Uscendo dalla partita, la sessione terminera per tutti. Vuoi uscire davvero?"
+      : "Vuoi uscire dalla stanza?";
+  if (!confirm(message)) return;
   const roomId = state.roomId;
   const roomDoc = roomRef(roomId);
   const playerDoc = playerRef(roomId, state.user.uid);
@@ -702,18 +767,12 @@ async function leaveRoom() {
   renderRoom();
 }
 
-async function toggleReady() {
-  if (!state.roomId || !state.user) return;
-  const me = state.players.find((player) => player.id === state.user.uid);
-  if (!me) return;
-  await updateDoc(playerRef(state.roomId, state.user.uid), {
-    ready: !me.ready,
-    name: getPlayerName() || me.name,
-  });
-}
-
 async function startGame() {
   if (!state.roomId || !state.user) return;
+  if (state.room?.hostId !== state.user.uid) {
+    alert("Solo l'host puo avviare la partita.");
+    return;
+  }
   await runTransaction(db, async (tx) => {
     const roomDoc = roomRef(state.roomId);
     const roomSnap = await tx.get(roomDoc);
@@ -737,10 +796,6 @@ async function startGame() {
         throw new Error("Missing player");
       }
       players.push({ id: playerId, ...snap.data() });
-    }
-
-    if (players.some((player) => !player.ready)) {
-      throw new Error("Players not ready");
     }
 
     const teamByPlayer = {};
@@ -788,10 +843,6 @@ async function startGame() {
       startedAt: serverTimestamp(),
     });
   }).catch((err) => {
-    if (err?.message?.includes("ready")) {
-      alert("Tutti i giocatori devono essere pronti.");
-      return;
-    }
     if (err?.message?.includes("Teams")) {
       alert("Assegna 2 giocatori per squadra prima di iniziare.");
       return;
@@ -955,9 +1006,11 @@ async function chooseBriscola(suit) {
 el.createRoom.addEventListener("click", createRoom);
 el.joinRoom.addEventListener("click", joinRoom);
 el.leaveRoom.addEventListener("click", leaveRoom);
-el.toggleReady.addEventListener("click", toggleReady);
 el.startGame.addEventListener("click", startGame);
 el.endGame.addEventListener("click", endGame);
+if (el.toggleHand) {
+  el.toggleHand.addEventListener("click", () => setHandOpen(!isHandOpen));
+}
 el.modeButtons.forEach((button) => {
   button.addEventListener("click", () => setMode(button.dataset.mode));
 });
