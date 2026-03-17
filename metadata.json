@@ -1,0 +1,5 @@
+{
+  "name": "Becaccino PWA",
+  "description": "A multiplayer progressive web app for the card game Becaccino.",
+  "requestFramePermissions": []
+}
