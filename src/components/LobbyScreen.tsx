@@ -8,10 +8,25 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
   const [copied, setCopied] = useState(false);
   const isHost = room.hostId === user.uid;
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(room.id);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(room.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = room.id;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (e) {
+        console.error("Copy failed", e);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const updateTeam = async (playerId: string, team: string) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { doc, updateDoc, runTransaction, deleteDoc, arrayRemove } from "firebase/firestore";
 import { db } from "../firebase";
-import { SUITS, cardImage, formatCard, compareCards, cardPoints, pointsFromUnits, buildDeck, shuffle, dealFullDeck, POINT_UNIT } from "../lib/gameLogic";
+import { SUITS, cardImage, formatCard, compareCards, cardPoints, pointsFromUnits, buildDeck, shuffle, dealFullDeck, POINT_UNIT, parseCard, TRICK_RANK } from "../lib/gameLogic";
 import { LogOut, ChevronUp, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
@@ -65,8 +65,19 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     });
   };
 
+  const leadSuit = room.table?.length ? room.table[0].card.split('-')[0] : null;
+  const hasLeadSuit = me?.hand?.some((c: string) => c.split('-')[0] === leadSuit);
+
+  const isCardPlayable = (card: string) => {
+    if (phase !== "playing" || !isMyTurn || !room.briscolaSuit) return false;
+    if (leadSuit && hasLeadSuit) {
+      return card.split('-')[0] === leadSuit;
+    }
+    return true;
+  };
+
   const playCard = async (card: string) => {
-    if (phase !== "playing" || !isMyTurn || !room.briscolaSuit) return;
+    if (!isCardPlayable(card)) return;
 
     await runTransaction(db, async (tx) => {
       const roomDoc = doc(db, "rooms", room.id);
@@ -83,99 +94,138 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       const index = hand.indexOf(card);
       if (index === -1) return;
 
-      const leadSuit = currentRoom.table?.length ? currentRoom.table[0].card.split('-')[0] : null;
-      if (leadSuit) {
-        const hasLeadSuit = hand.some((c) => c.split('-')[0] === leadSuit);
+      const currentLeadSuit = currentRoom.table?.length ? currentRoom.table[0].card.split('-')[0] : null;
+      if (currentLeadSuit) {
+        const currentHasLeadSuit = hand.some((c) => c.split('-')[0] === currentLeadSuit);
         const cardSuit = card.split('-')[0];
-        if (hasLeadSuit && cardSuit !== leadSuit) return; // Must follow suit
+        if (currentHasLeadSuit && cardSuit !== currentLeadSuit) return; // Must follow suit
       }
 
       hand.splice(index, 1);
       const table = [...(currentRoom.table || []), { playerId: user.uid, card }];
 
       let nextIndex = (currentRoom.turnIndex + 1) % order.length;
-      let tableUpdate = table;
-      let handTeamA = currentRoom.handTeamA || 0;
-      let handTeamB = currentRoom.handTeamB || 0;
-      let trickCount = currentRoom.trickCount || 0;
-      let scoreTeamA = currentRoom.scoreTeamA || 0;
-      let scoreTeamB = currentRoom.scoreTeamB || 0;
-      let nextPhase = currentRoom.phase;
-      let status = currentRoom.status;
-      let briscolaSuit = currentRoom.briscolaSuit;
-      let briscolaChooserIndex = currentRoom.briscolaChooserIndex ?? 0;
-      let briscolaChooserId = currentRoom.briscolaChooserId;
-      let handNumber = currentRoom.handNumber || 1;
 
       if (table.length === order.length) {
         const lead = table[0].card.split('-')[0];
         let winning = table[0];
         for (const entry of table.slice(1)) {
-          if (compareCards(entry.card, winning.card, lead, briscolaSuit) > 0) {
+          if (compareCards(entry.card, winning.card, lead, currentRoom.briscolaSuit) > 0) {
             winning = entry;
           }
         }
         
-        const winnerId = winning.playerId;
-        const winnerIndex = order.indexOf(winnerId);
-        const points = table.reduce((sum, entry) => sum + cardPoints(entry.card), 0);
-        const winnerTeam = currentRoom.teamByPlayer?.[winnerId];
-        
-        if (winnerTeam === "A") handTeamA += points;
-        else if (winnerTeam === "B") handTeamB += points;
-
-        trickCount += 1;
-        tableUpdate = [];
-        nextIndex = winnerIndex;
-
-        if (trickCount >= 10) {
-          const lastTrickBonus = POINT_UNIT;
-          if (winnerTeam === "A") handTeamA += lastTrickBonus;
-          else if (winnerTeam === "B") handTeamB += lastTrickBonus;
-
-          scoreTeamA += pointsFromUnits(handTeamA);
-          scoreTeamB += pointsFromUnits(handTeamB);
-
-          const target = currentRoom.targetPoints || 31;
-          if (scoreTeamA >= target || scoreTeamB >= target) {
-            status = "ended";
-            nextPhase = "ended";
-          } else {
-            const deck = shuffle(buildDeck());
-            const hands = dealFullDeck(order, deck);
-            briscolaChooserIndex = (briscolaChooserIndex + 1) % order.length;
-            briscolaChooserId = order[briscolaChooserIndex];
-
-            order.forEach((playerId) => {
-              tx.update(doc(db, "rooms", room.id, "players", playerId), { hand: hands[playerId] });
-            });
-
-            handTeamA = 0;
-            handTeamB = 0;
-            trickCount = 0;
-            briscolaSuit = null;
-            nextPhase = "choose_briscola";
-            handNumber += 1;
-            nextIndex = briscolaChooserIndex;
-          }
-        }
+        tx.update(meRef, { hand });
+        tx.update(roomDoc, {
+          table,
+          phase: "trick_end",
+          trickWinnerId: winning.playerId,
+          turnIndex: order.indexOf(winning.playerId)
+        });
+        return;
       }
 
       tx.update(meRef, { hand });
       tx.update(roomDoc, {
-        table: tableUpdate,
+        table,
         turnIndex: nextIndex,
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (room.phase === "trick_end" && isHost) {
+      const timer = setTimeout(async () => {
+        await resolveTrick();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [room.phase, isHost, room.id]);
+
+  const resolveTrick = async () => {
+    await runTransaction(db, async (tx) => {
+      const roomDoc = doc(db, "rooms", room.id);
+      const roomSnap = await tx.get(roomDoc);
+      if (!roomSnap.exists()) return;
+      const currentRoom = roomSnap.data();
+      if (currentRoom.phase !== "trick_end") return;
+
+      const table = currentRoom.table || [];
+      if (table.length < 4) return;
+
+      const lead = table[0].card.split('-')[0];
+      let winning = table[0];
+      for (const entry of table.slice(1)) {
+        if (compareCards(entry.card, winning.card, lead, currentRoom.briscolaSuit) > 0) {
+          winning = entry;
+        }
+      }
+
+      const winnerId = winning.playerId;
+      const points = table.reduce((sum: number, entry: any) => sum + cardPoints(entry.card), 0);
+      const winnerTeam = currentRoom.teamByPlayer?.[winnerId];
+      
+      let handTeamA = currentRoom.handTeamA || 0;
+      let handTeamB = currentRoom.handTeamB || 0;
+      if (winnerTeam === "A") handTeamA += points;
+      else if (winnerTeam === "B") handTeamB += points;
+
+      let trickCount = (currentRoom.trickCount || 0) + 1;
+      let scoreTeamA = currentRoom.scoreTeamA || 0;
+      let scoreTeamB = currentRoom.scoreTeamB || 0;
+      let nextPhase = "playing";
+      let status = currentRoom.status;
+      let briscolaSuit = currentRoom.briscolaSuit;
+      let briscolaChooserIndex = currentRoom.briscolaChooserIndex ?? 0;
+      let briscolaChooserId = currentRoom.briscolaChooserId;
+      let handNumber = currentRoom.handNumber || 1;
+      const order = currentRoom.playerOrder || [];
+
+      if (trickCount >= 10) {
+        const lastTrickBonus = POINT_UNIT;
+        if (winnerTeam === "A") handTeamA += lastTrickBonus;
+        else if (winnerTeam === "B") handTeamB += lastTrickBonus;
+
+        scoreTeamA += pointsFromUnits(handTeamA);
+        scoreTeamB += pointsFromUnits(handTeamB);
+
+        const target = currentRoom.targetPoints || 31;
+        if (scoreTeamA >= target || scoreTeamB >= target) {
+          status = "ended";
+          nextPhase = "ended";
+        } else {
+          const deck = shuffle(buildDeck());
+          const hands = dealFullDeck(order, deck);
+          briscolaChooserIndex = (briscolaChooserIndex + 1) % order.length;
+          briscolaChooserId = order[briscolaChooserIndex];
+
+          order.forEach((playerId: string) => {
+            tx.update(doc(db, "rooms", room.id, "players", playerId), { hand: hands[playerId] });
+          });
+
+          handTeamA = 0;
+          handTeamB = 0;
+          trickCount = 0;
+          briscolaSuit = null;
+          nextPhase = "choose_briscola";
+          handNumber += 1;
+        }
+      }
+
+      tx.update(roomDoc, {
+        table: [],
+        phase: nextPhase,
+        status,
         handTeamA,
         handTeamB,
         trickCount,
         scoreTeamA,
         scoreTeamB,
-        phase: nextPhase,
-        status,
         briscolaSuit,
         briscolaChooserId,
         briscolaChooserIndex,
         handNumber,
+        trickWinnerId: null
       });
     });
   };
@@ -192,6 +242,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     const player = players.find((p: any) => p.id === playerId);
     const card = tableMap.get(playerId);
     const isTurn = turnPlayerId === playerId && phase === "playing";
+    const team = room.teamByPlayer?.[playerId];
 
     return (
       <div className={cn(
@@ -202,10 +253,18 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         position === "right" && "right-4 top-1/2 -translate-y-1/2"
       )}>
         <div className={cn(
-          "px-3 py-1 rounded-full text-xs font-semibold shadow-sm border whitespace-nowrap",
+          "px-3 py-1 rounded-full text-xs font-semibold shadow-sm border whitespace-nowrap flex items-center gap-1.5",
           isTurn ? "bg-emerald-500 text-white border-emerald-600" : "bg-white/90 text-stone-800 border-stone-200/50"
         )}>
-          {player?.name || "--"}
+          <span>{player?.name || "--"}</span>
+          {team && (
+            <span className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-bold",
+              team === "A" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
+            )}>
+              {team}
+            </span>
+          )}
         </div>
         <div className="w-16 h-24 rounded-lg bg-black/10 border border-white/10 flex items-center justify-center">
           {card && (
@@ -222,10 +281,16 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     );
   };
 
+  const sortedHand = [...(me?.hand || [])].sort((a, b) => {
+    const ca = parseCard(a);
+    const cb = parseCard(b);
+    if (ca.suit !== cb.suit) return ca.suit.localeCompare(cb.suit);
+    return (TRICK_RANK.get(cb.rank) ?? 99) - (TRICK_RANK.get(ca.rank) ?? 99);
+  });
+
   return (
-    <div className="fixed inset-0 bg-emerald-950 text-stone-100 flex flex-col overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+    <div className="fixed inset-0 bg-emerald-950 text-stone-100 flex flex-col overflow-hidden bg-[url('/assets/table.jpg')] bg-cover bg-center">
+      <div className="absolute inset-0 bg-emerald-950/80 pointer-events-none" />
 
       {/* Header / HUD */}
       <div className="relative z-10 p-4 flex flex-col gap-3 bg-emerald-900/50 backdrop-blur-md border-b border-white/10">
@@ -293,6 +358,22 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
           </>
         )}
 
+        {/* Trick Winner Overlay */}
+        <AnimatePresence>
+          {phase === "trick_end" && room.trickWinnerId && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+            >
+              <div className="bg-emerald-900/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-emerald-500/30 text-lg font-serif font-bold whitespace-nowrap">
+                Ha preso {players.find((p: any) => p.id === room.trickWinnerId)?.name}!
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Briscola Picker Overlay */}
         <AnimatePresence>
           {phase === "choose_briscola" && room.briscolaChooserId === user.uid && (
@@ -340,10 +421,10 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                 exit={{ height: 0 }}
                 className="bg-emerald-800/90 backdrop-blur-md border-t border-white/10 overflow-hidden"
               >
-                <div className="p-4 overflow-x-auto">
-                  <div className="flex gap-2 min-w-max pb-2 px-2">
-                    {me?.hand?.map((card: string) => {
-                      const isPlayable = phase === "playing" && isMyTurn;
+                <div className="p-4">
+                  <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
+                    {sortedHand.map((card: string) => {
+                      const isPlayable = isCardPlayable(card);
                       return (
                         <motion.div
                           key={card}
@@ -351,16 +432,16 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                           whileTap={isPlayable ? { scale: 0.95 } : {}}
                           onClick={() => isPlayable && playCard(card)}
                           className={cn(
-                            "w-20 sm:w-24 flex-shrink-0 rounded-xl bg-white p-1.5 shadow-lg transition-shadow",
-                            isPlayable ? "cursor-pointer ring-2 ring-amber-400 shadow-amber-400/20" : "opacity-80 grayscale-[20%]"
+                            "w-full aspect-[2/3] rounded-xl bg-white p-1 shadow-lg transition-shadow",
+                            isPlayable ? "cursor-pointer ring-2 ring-amber-400 shadow-amber-400/20" : "opacity-80 grayscale-[50%]"
                           )}
                         >
-                          <img src={cardImage(card)} alt={formatCard(card)} className="w-full h-auto rounded-lg" />
+                          <img src={cardImage(card)} alt={formatCard(card)} className="w-full h-full object-contain rounded-lg" />
                         </motion.div>
                       );
                     })}
-                    {(!me?.hand || me.hand.length === 0) && (
-                      <div className="text-emerald-300/50 text-sm italic py-8 px-4 text-center w-full">
+                    {(!sortedHand || sortedHand.length === 0) && (
+                      <div className="col-span-5 text-emerald-300/50 text-sm italic py-8 px-4 text-center w-full">
                         Nessuna carta in mano
                       </div>
                     )}

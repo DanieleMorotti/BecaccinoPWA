@@ -15,12 +15,30 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
+    const init = async () => {
+      try {
+        await ensureAuth();
+      } catch (e) {
+        console.error("Auth error", e);
+      }
+    };
+    init();
+
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
+      if (isMounted) {
+        setUser(u);
+        if (u) {
+          setLoading(false);
+        }
+      }
     });
-    ensureAuth();
-    return unsub;
+    
+    return () => {
+      isMounted = false;
+      unsub();
+    };
   }, []);
 
   if (loading) {
