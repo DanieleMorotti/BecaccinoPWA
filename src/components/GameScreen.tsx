@@ -45,8 +45,12 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     if (!confirm(message)) return;
     
     try {
-      await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
-      await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
+      if (room.status === "playing" || isHost) {
+        await updateDoc(doc(db, "rooms", room.id), { status: "closed" });
+      } else {
+        await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
+        await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -311,8 +315,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     return (
       <div className={cn(
         "absolute flex flex-col items-center gap-2 transition-all",
-        position === "bottom" && "bottom-10 left-1/2 -translate-x-1/2",
-        position === "top" && "top-16 left-1/2 -translate-x-1/2",
+        position === "bottom" && "bottom-16 sm:bottom-10 left-1/2 -translate-x-1/2",
+        position === "top" && "top-12 sm:top-16 left-1/2 -translate-x-1/2",
         position === "left" && "left-4 top-1/2 -translate-y-1/2",
         position === "right" && "right-4 top-1/2 -translate-y-1/2"
       )}>
@@ -331,7 +335,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
           )}
         </div>
         <div className={cn(
-          "w-16 h-24 rounded-lg bg-black/10 flex items-center justify-center transition-all relative",
+          "w-14 h-20 sm:w-16 sm:h-24 rounded-lg bg-black/10 flex items-center justify-center transition-all relative",
           isWinning ? "border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)]" : "border border-white/10"
         )}>
           {card && (
@@ -568,8 +572,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                 exit={{ height: 0 }}
                 className="bg-emerald-800/90 backdrop-blur-md border-t border-white/10 overflow-hidden"
               >
-                <div className="p-4">
-                  <div className="grid grid-cols-5 md:flex md:flex-row md:flex-wrap md:justify-center gap-2 max-w-md md:max-w-4xl mx-auto">
+                <div className="p-2 sm:p-4">
+                  <div className="grid grid-cols-5 md:flex md:flex-row md:flex-wrap md:justify-center gap-1.5 sm:gap-2 max-w-md md:max-w-4xl mx-auto">
                     {sortedHand.map((card: string) => {
                       const isPlayable = isCardPlayable(card);
                       return (
@@ -577,7 +581,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                           key={card}
                           onClick={() => handleCardClick(card)}
                           className={cn(
-                            "relative w-full md:w-24 aspect-[2/3] md:aspect-auto md:h-36 rounded-xl bg-white p-1 shadow-lg transition-all duration-200",
+                            "relative w-full md:w-24 aspect-[2/3] md:aspect-auto md:h-36 rounded-lg md:rounded-xl bg-white p-0.5 md:p-1 shadow-md md:shadow-lg transition-all duration-200",
                             isPlayable ? "cursor-pointer ring-2 ring-amber-400 shadow-amber-400/20" : "opacity-80 grayscale-[50%]",
                             selectedCardToPlay === card && "ring-4 ring-emerald-500 shadow-emerald-500/50 -translate-y-2"
                           )}

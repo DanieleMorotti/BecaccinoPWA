@@ -11,8 +11,16 @@ import RoomManager from './components/RoomManager';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [roomId, setRoomId] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(() => localStorage.getItem('becaccino:roomId'));
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (roomId) {
+      localStorage.setItem('becaccino:roomId', roomId);
+    } else {
+      localStorage.removeItem('becaccino:roomId');
+    }
+  }, [roomId]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {

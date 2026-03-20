@@ -12,6 +12,11 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
     try {
       if (isHost) {
         await updateDoc(doc(db, "rooms", room.id), { status: "closed" });
+        // Delete all players
+        for (const p of players) {
+          await deleteDoc(doc(db, "rooms", room.id, "players", p.id));
+        }
+        await deleteDoc(doc(db, "rooms", room.id));
       } else {
         await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
         await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
@@ -177,27 +182,27 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
 
           <div className="space-y-3">
             {players.map((player: any) => (
-              <div key={player.id} className="flex items-center justify-between p-4 rounded-2xl bg-stone-50 border border-stone-100">
+              <div key={player.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-stone-50 border border-stone-100 gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold shrink-0">
                     {player.name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <p className="font-medium text-stone-900">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-stone-900 truncate">
                       {player.name} {player.id === user.uid && "(Tu)"}
                     </p>
                     {player.id === room.hostId && (
-                      <span className="text-xs font-medium text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Host</span>
+                      <span className="text-xs font-medium text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full inline-block mt-1">Host</span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <select
                     value={player.team || ""}
                     onChange={(e) => updateTeam(player.id, e.target.value)}
                     disabled={!isHost}
-                    className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-70 disabled:bg-stone-50"
+                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-70 disabled:bg-stone-50"
                   >
                     <option value="">Nessuna squadra</option>
                     <option value="A">Squadra A</option>
@@ -206,7 +211,7 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
                   {isHost && player.id !== user.uid && (
                     <button
                       onClick={() => kickPlayer(player.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors shrink-0"
                       title="Espelli giocatore"
                     >
                       <UserMinus className="w-5 h-5" />

@@ -19,7 +19,12 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
   useEffect(() => {
     const unsubRoom = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
       if (snap.exists()) {
-        setRoom({ id: snap.id, ...snap.data() });
+        const data = snap.data();
+        if (data.status === 'closed') {
+          onLeave();
+        } else {
+          setRoom({ id: snap.id, ...data });
+        }
       } else {
         onLeave();
       }
@@ -42,10 +47,10 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
 
     const handleBeforeUnload = () => {
       if (room.hostId === user.uid) {
-        updateDoc(doc(db, 'rooms', roomId), { status: 'ended' }).catch(() => {});
+        updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
       } else {
         if (room.status === 'playing') {
-          updateDoc(doc(db, 'rooms', roomId), { status: 'ended' }).catch(() => {});
+          updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
         } else {
           deleteDoc(doc(db, 'rooms', roomId, 'players', user.uid)).catch(() => {});
           updateDoc(doc(db, 'rooms', roomId), { playerIds: arrayRemove(user.uid) }).catch(() => {});
@@ -67,25 +72,39 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
     };
   }, [roomId, user.uid, room]);
 
-  // Host checks for disconnected players
+  // Host checks for disconnected players, and players check for disconnected host
   useEffect(() => {
-    if (!room || room.hostId !== user.uid) return;
+    if (!room) return;
 
     const checkInterval = setInterval(() => {
       const now = Date.now();
-      players.forEach(p => {
-        if (p.id !== user.uid && p.lastPing) {
-          const pingTime = p.lastPing.toMillis ? p.lastPing.toMillis() : (p.lastPing.seconds * 1000);
-          if (now - pingTime > 30000) { // 30 seconds timeout
-            if (room.status === 'playing') {
-              updateDoc(doc(db, 'rooms', roomId), { status: 'ended' }).catch(() => {});
-            } else {
-              deleteDoc(doc(db, 'rooms', roomId, 'players', p.id)).catch(() => {});
-              updateDoc(doc(db, 'rooms', roomId), { playerIds: arrayRemove(p.id) }).catch(() => {});
+      
+      if (room.hostId === user.uid) {
+        players.forEach(p => {
+          if (p.id !== user.uid && p.lastPing) {
+            const pingTime = p.lastPing.toMillis ? p.lastPing.toMillis() : (p.lastPing.seconds * 1000);
+            const timeout = room.status === 'playing' ? 300000 : 60000; // 5 mins in game, 1 min in lobby
+            if (now - pingTime > timeout) {
+              if (room.status === 'playing') {
+                updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
+              } else {
+                deleteDoc(doc(db, 'rooms', roomId, 'players', p.id)).catch(() => {});
+                updateDoc(doc(db, 'rooms', roomId), { playerIds: arrayRemove(p.id) }).catch(() => {});
+              }
             }
           }
+        });
+      } else {
+        // Non-host checks if host disconnected
+        const host = players.find(p => p.id === room.hostId);
+        if (host && host.lastPing) {
+          const pingTime = host.lastPing.toMillis ? host.lastPing.toMillis() : (host.lastPing.seconds * 1000);
+          const timeout = room.status === 'playing' ? 300000 : 60000; // 5 mins in game, 1 min in lobby
+          if (now - pingTime > timeout) {
+            updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
+          }
         }
-      });
+      }
     }, 15000);
 
     return () => clearInterval(checkInterval);
