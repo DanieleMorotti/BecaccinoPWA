@@ -123,14 +123,29 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 pt-12">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-serif font-bold text-emerald-900 mb-2">Becaccino</h1>
-        <p className="text-emerald-700/80">Gioca 2v2 in tempo reale</p>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-emerald-950 via-emerald-900 to-emerald-800">
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-emerald-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-lime-300/10 blur-3xl" />
 
-      <div className="bg-white rounded-3xl shadow-xl shadow-emerald-900/5 overflow-hidden border border-emerald-100">
-        <div className="flex p-2 bg-emerald-50/50 border-b border-emerald-100">
+      <div className="relative z-10 max-w-md mx-auto px-6 pt-10 pb-10">
+        <div className="text-center mb-8">
+          <div className="relative mx-auto mb-4 h-32 w-32">
+            <div className="absolute inset-0 rounded-[34px] bg-gradient-to-br from-lime-300/50 via-emerald-300/30 to-amber-200/30 blur-2xl" />
+            <div className="absolute -inset-1 rounded-[36px] bg-[conic-gradient(from_180deg,rgba(167,243,208,0.4),rgba(190,242,100,0.3),rgba(52,211,153,0.35),rgba(167,243,208,0.4))] opacity-70 animate-[spin_18s_linear_infinite]" />
+            <div className="relative h-full w-full rounded-[30px] bg-emerald-950/70 p-2 shadow-2xl shadow-emerald-950/40 ring-1 ring-emerald-200/20">
+              <img
+                src="/icons/icon.png"
+                alt="Becaccino"
+                className="h-full w-full rounded-[24px] object-cover scale-[1.06] transform-gpu"
+              />
+            </div>
+          </div>
+          <h1 className="text-4xl font-serif font-bold text-emerald-50 mb-1.5">Becaccino</h1>
+          <p className="text-emerald-100/80">Gioca 2v2 in tempo reale</p>
+        </div>
+
+        <div className="bg-white/95 rounded-3xl shadow-2xl shadow-emerald-950/30 overflow-hidden border border-emerald-100/70 backdrop-blur">
+          <div className="flex p-2 bg-emerald-50/80 border-b border-emerald-100/80">
           <button
             onClick={() => setActiveMode("create")}
             className={`flex-1 py-3 px-4 rounded-2xl text-sm font-medium transition-all ${
@@ -153,64 +168,65 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
             <LogIn className="w-4 h-4 inline-block mr-2" />
             Entra
           </button>
-        </div>
-
-        <div className="p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-emerald-900 mb-1.5">Nome Giocatore</label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={handleNameChange}
-              placeholder="Es. Luca"
-              maxLength={18}
-              className="w-full px-4 py-3 rounded-xl bg-emerald-50/50 border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-emerald-900 placeholder:text-emerald-300"
-            />
           </div>
 
-          {activeMode === "create" ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-emerald-900 mb-1.5">Punti per vincere</label>
-                <select
-                  value={targetPoints}
-                  onChange={(e) => setTargetPoints(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-emerald-50/50 border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-emerald-900"
+          <div className="p-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-emerald-900 mb-1.5">Nome Giocatore</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={handleNameChange}
+                placeholder="Es. Luca"
+                maxLength={18}
+                className="w-full px-4 py-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-emerald-900 placeholder:text-emerald-300"
+              />
+            </div>
+
+            {activeMode === "create" ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-emerald-900 mb-1.5">Punti per vincere</label>
+                  <select
+                    value={targetPoints}
+                    onChange={(e) => setTargetPoints(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-emerald-900"
+                  >
+                    <option value="31">31 punti</option>
+                    <option value="41">41 punti</option>
+                  </select>
+                </div>
+                <button
+                  onClick={createRoom}
+                  disabled={loading}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg shadow-emerald-600/20 transition-all active:scale-[0.98] disabled:opacity-70"
                 >
-                  <option value="31">31 punti</option>
-                  <option value="41">41 punti</option>
-                </select>
-              </div>
-              <button
-                onClick={createRoom}
-                disabled={loading}
-                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg shadow-emerald-600/20 transition-all active:scale-[0.98] disabled:opacity-70"
-              >
-                {loading ? "Creazione..." : "Crea Stanza"}
-              </button>
-            </>
-          ) : (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-emerald-900 mb-1.5">Codice Stanza</label>
-                <input
-                  type="text"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                  placeholder="ABCD12"
-                  maxLength={6}
-                  className="w-full px-4 py-3 rounded-xl bg-emerald-50/50 border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-emerald-900 placeholder:text-emerald-300 uppercase"
-                />
-              </div>
-              <button
-                onClick={joinRoom}
-                disabled={loading}
-                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg shadow-emerald-600/20 transition-all active:scale-[0.98] disabled:opacity-70"
-              >
-                {loading ? "Accesso..." : "Entra nella Stanza"}
-              </button>
-            </>
-          )}
+                  {loading ? "Creazione..." : "Crea Stanza"}
+                </button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-emerald-900 mb-1.5">Codice Stanza</label>
+                  <input
+                    type="text"
+                    value={roomCode}
+                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                    placeholder="ABCD12"
+                    maxLength={6}
+                    className="w-full px-4 py-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-emerald-900 placeholder:text-emerald-300 uppercase"
+                  />
+                </div>
+                <button
+                  onClick={joinRoom}
+                  disabled={loading}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg shadow-emerald-600/20 transition-all active:scale-[0.98] disabled:opacity-70"
+                >
+                  {loading ? "Accesso..." : "Entra nella Stanza"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
