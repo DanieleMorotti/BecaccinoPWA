@@ -154,7 +154,51 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       }, 3000);
       return () => clearTimeout(timer);
     }
+    if (room.phase === "hand_end" && isHost) {
+      const timer = setTimeout(async () => {
+        await startNextHand();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
   }, [room.phase, isHost, room.id]);
+
+  const startNextHand = async () => {
+    await runTransaction(db, async (tx) => {
+      const roomDoc = doc(db, "rooms", room.id);
+      const roomSnap = await tx.get(roomDoc);
+      if (!roomSnap.exists()) return;
+      const currentRoom = roomSnap.data();
+      if (currentRoom.phase !== "hand_end") return;
+
+      const target = currentRoom.targetPoints || 31;
+      if (currentRoom.scoreTeamA >= target || currentRoom.scoreTeamB >= target) {
+        tx.update(roomDoc, { status: "ended", phase: "ended" });
+        return;
+      }
+
+      const order = currentRoom.playerOrder || [];
+      const deck = shuffle(buildDeck());
+      const hands = dealFullDeck(order, deck);
+      const briscolaChooserIndex = ((currentRoom.briscolaChooserIndex ?? 0) + 1) % order.length;
+      const briscolaChooserId = order[briscolaChooserIndex];
+
+      order.forEach((playerId: string) => {
+        tx.update(doc(db, "rooms", room.id, "players", playerId), { hand: hands[playerId] });
+      });
+
+      tx.update(roomDoc, {
+        phase: "choose_briscola",
+        handTeamA: 0,
+        handTeamB: 0,
+        trickCount: 0,
+        briscolaSuit: null,
+        briscolaChooserId,
+        briscolaChooserIndex,
+        turnIndex: briscolaChooserIndex,
+        handNumber: (currentRoom.handNumber || 1) + 1,
+      });
+    });
+  };
 
   const resolveTrick = async () => {
     await runTransaction(db, async (tx) => {
@@ -203,27 +247,18 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         scoreTeamA += pointsFromUnits(handTeamA);
         scoreTeamB += pointsFromUnits(handTeamB);
 
-        const target = currentRoom.targetPoints || 31;
-        if (scoreTeamA >= target || scoreTeamB >= target) {
-          status = "ended";
-          nextPhase = "ended";
-        } else {
-          const deck = shuffle(buildDeck());
-          const hands = dealFullDeck(order, deck);
-          briscolaChooserIndex = (briscolaChooserIndex + 1) % order.length;
-          briscolaChooserId = order[briscolaChooserIndex];
-
-          order.forEach((playerId: string) => {
-            tx.update(doc(db, "rooms", room.id, "players", playerId), { hand: hands[playerId] });
-          });
-
-          handTeamA = 0;
-          handTeamB = 0;
-          trickCount = 0;
-          briscolaSuit = null;
-          nextPhase = "choose_briscola";
-          handNumber += 1;
-        }
+        tx.update(roomDoc, {
+          table: [],
+          phase: "hand_end",
+          status,
+          handTeamA,
+          handTeamB,
+          trickCount,
+          scoreTeamA,
+          scoreTeamB,
+          trickWinnerId: null
+        });
+        return;
       }
 
       tx.update(roomDoc, {
@@ -276,7 +311,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     return (
       <div className={cn(
         "absolute flex flex-col items-center gap-2 transition-all",
-        position === "bottom" && "bottom-4 left-1/2 -translate-x-1/2",
+        position === "bottom" && "bottom-10 left-1/2 -translate-x-1/2",
         position === "top" && "top-16 left-1/2 -translate-x-1/2",
         position === "left" && "left-4 top-1/2 -translate-y-1/2",
         position === "right" && "right-4 top-1/2 -translate-y-1/2"
@@ -444,6 +479,30 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
             >
               <div className="bg-emerald-900/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-emerald-500/30 text-lg font-serif font-bold whitespace-nowrap">
                 Ha preso {players.find((p: any) => p.id === room.trickWinnerId)?.name}!
+              </div>
+            </motion.div>
+          )}
+
+          {phase === "hand_end" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none"
+            >
+              <div className="bg-emerald-900/95 backdrop-blur-md text-white p-6 rounded-3xl shadow-2xl border border-amber-500/50 flex flex-col items-center gap-4 min-w-[280px]">
+                <h3 className="text-2xl font-serif font-bold text-amber-400">Fine Mano {room.handNumber}</h3>
+                <div className="flex w-full justify-between items-center px-4">
+                  <div className="flex flex-col items-center">
+                    <span className="text-sm text-emerald-300 font-medium">Squadra A</span>
+                    <span className="text-3xl font-bold">+{pointsFromUnits(Number(room.handTeamA) || 0)}</span>
+                  </div>
+                  <div className="h-12 w-px bg-white/20 mx-4" />
+                  <div className="flex flex-col items-center">
+                    <span className="text-sm text-emerald-300 font-medium">Squadra B</span>
+                    <span className="text-3xl font-bold">+{pointsFromUnits(Number(room.handTeamB) || 0)}</span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

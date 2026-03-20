@@ -1,12 +1,26 @@
-import { doc, updateDoc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, runTransaction, serverTimestamp, deleteDoc, arrayRemove } from "firebase/firestore";
 import { db } from "../firebase";
 import { countTeams, MAX_PLAYERS, shuffle, buildDeck, dealFullDeck } from "../lib/gameLogic";
-import { Users, Copy, Check, LogOut, Play } from "lucide-react";
+import { Users, Copy, Check, LogOut, Play, UserMinus } from "lucide-react";
 import { useState } from "react";
 
 export default function LobbyScreen({ room, players, user, onLeave }: any) {
   const [copied, setCopied] = useState(false);
   const isHost = room.hostId === user.uid;
+
+  const handleLeave = async () => {
+    try {
+      if (isHost) {
+        await updateDoc(doc(db, "rooms", room.id), { status: "closed" });
+      } else {
+        await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
+        await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    onLeave();
+  };
 
   const handleCopyCode = async () => {
     try {
@@ -26,6 +40,17 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
         console.error("Copy failed", e);
       }
       document.body.removeChild(textArea);
+    }
+  };
+
+  const kickPlayer = async (playerId: string) => {
+    if (!isHost || playerId === user.uid) return;
+    if (!confirm("Sei sicuro di voler espellere questo giocatore?")) return;
+    try {
+      await deleteDoc(doc(db, "rooms", room.id, "players", playerId));
+      await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(playerId) });
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -65,16 +90,16 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
         }
 
         const teamByPlayer: Record<string, string> = {};
-        let teamACount = 0;
-        let teamBCount = 0;
+        const teamA: string[] = [];
+        const teamB: string[] = [];
         currentPlayers.forEach((p) => {
-          if (p.team === "A") { teamACount++; teamByPlayer[p.id] = "A"; }
-          else if (p.team === "B") { teamBCount++; teamByPlayer[p.id] = "B"; }
+          if (p.team === "A") { teamA.push(p.id); teamByPlayer[p.id] = "A"; }
+          else if (p.team === "B") { teamB.push(p.id); teamByPlayer[p.id] = "B"; }
         });
         
-        if (teamACount !== 2 || teamBCount !== 2) throw new Error("Teams not ready");
+        if (teamA.length !== 2 || teamB.length !== 2) throw new Error("Teams not ready");
 
-        const order = playerIds;
+        const order = [teamA[0], teamB[0], teamA[1], teamB[1]];
         const deck = shuffle(buildDeck());
         const hands = dealFullDeck(order, deck);
 
@@ -119,7 +144,7 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
           </p>
         </div>
         <button
-          onClick={onLeave}
+          onClick={handleLeave}
           className="text-stone-500 hover:text-stone-700 px-4 py-2 rounded-xl hover:bg-stone-200/50 transition-colors text-sm font-medium flex items-center gap-2"
         >
           <LogOut className="w-4 h-4" />
@@ -167,16 +192,27 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
                   </div>
                 </div>
 
-                <select
-                  value={player.team || ""}
-                  onChange={(e) => updateTeam(player.id, e.target.value)}
-                  disabled={!isHost}
-                  className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-70 disabled:bg-stone-50"
-                >
-                  <option value="">Nessuna squadra</option>
-                  <option value="A">Squadra A</option>
-                  <option value="B">Squadra B</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={player.team || ""}
+                    onChange={(e) => updateTeam(player.id, e.target.value)}
+                    disabled={!isHost}
+                    className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-70 disabled:bg-stone-50"
+                  >
+                    <option value="">Nessuna squadra</option>
+                    <option value="A">Squadra A</option>
+                    <option value="B">Squadra B</option>
+                  </select>
+                  {isHost && player.id !== user.uid && (
+                    <button
+                      onClick={() => kickPlayer(player.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      title="Espelli giocatore"
+                    >
+                      <UserMinus className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
             

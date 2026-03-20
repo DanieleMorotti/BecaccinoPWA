@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, ensureAuth } from './firebase';
+import { auth } from './firebase';
 import SetupScreen from './components/SetupScreen';
 import RoomManager from './components/RoomManager';
 
@@ -15,30 +15,12 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const init = async () => {
-      try {
-        await ensureAuth();
-      } catch (e) {
-        console.error("Auth error", e);
-      }
-    };
-    init();
-
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (isMounted) {
-        setUser(u);
-        if (u) {
-          setLoading(false);
-        }
-      }
+      setUser(u);
+      setLoading(false);
     });
     
-    return () => {
-      isMounted = false;
-      unsub();
-    };
+    return () => unsub();
   }, []);
 
   if (loading) {
@@ -46,26 +28,18 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center bg-stone-100">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-emerald-800 font-medium">Connessione in corso...</p>
+          <p className="text-emerald-800 font-medium">Caricamento...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-100">
-        <p className="text-emerald-800 font-medium">Errore di autenticazione.</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 font-sans selection:bg-emerald-200">
-      {roomId ? (
+      {roomId && user ? (
         <RoomManager roomId={roomId} onLeave={() => setRoomId(null)} user={user} />
       ) : (
-        <SetupScreen onJoinRoom={setRoomId} user={user} />
+        <SetupScreen onJoinRoom={setRoomId} />
       )}
     </div>
   );

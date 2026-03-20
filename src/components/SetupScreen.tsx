@@ -2,15 +2,13 @@ import React, { useState, useEffect } from "react";
 import { doc, setDoc, getDoc, collection, query, orderBy, getDocs, serverTimestamp, arrayUnion } from "firebase/firestore";
 import { db, ensureAuth } from "../firebase";
 import { generateRoomCode, MAX_PLAYERS } from "../lib/gameLogic";
-import { User } from "firebase/auth";
 import { Plus, LogIn } from "lucide-react";
 
 interface SetupScreenProps {
   onJoinRoom: (roomId: string) => void;
-  user: User;
 }
 
-export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
+export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
   const [activeMode, setActiveMode] = useState<"create" | "join">("create");
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -31,14 +29,14 @@ export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
     if (!playerName.trim()) return alert("Inserisci un nome giocatore.");
     setLoading(true);
     try {
-      await ensureAuth();
+      const currentUser = await ensureAuth();
       const roomId = generateRoomCode();
       const roomDoc = doc(db, "rooms", roomId);
-      const playerDoc = doc(db, "rooms", roomId, "players", user.uid);
+      const playerDoc = doc(db, "rooms", roomId, "players", currentUser.uid);
 
       await setDoc(roomDoc, {
         createdAt: serverTimestamp(),
-        hostId: user.uid,
+        hostId: currentUser.uid,
         status: "lobby",
         phase: "lobby",
         table: [],
@@ -48,7 +46,7 @@ export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
         scoreTeamB: 0,
         handTeamA: 0,
         handTeamB: 0,
-        playerIds: [user.uid],
+        playerIds: [currentUser.uid],
       });
 
       await setDoc(playerDoc, {
@@ -73,7 +71,7 @@ export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
     if (!code) return alert("Inserisci un codice stanza.");
     setLoading(true);
     try {
-      await ensureAuth();
+      const currentUser = await ensureAuth();
       const roomDoc = doc(db, "rooms", code);
       const roomSnap = await getDoc(roomDoc);
       
@@ -92,7 +90,7 @@ export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
 
       const playersQuery = query(collection(db, "rooms", code, "players"), orderBy("joinedAt"));
       const playersSnap = await getDocs(playersQuery);
-      const alreadyJoined = playersSnap.docs.some((d) => d.id === user.uid);
+      const alreadyJoined = playersSnap.docs.some((d) => d.id === currentUser.uid);
       
       if (!alreadyJoined && playersSnap.size >= MAX_PLAYERS) {
         alert("La stanza è piena.");
@@ -100,7 +98,7 @@ export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
         return;
       }
 
-      const playerDoc = doc(db, "rooms", code, "players", user.uid);
+      const playerDoc = doc(db, "rooms", code, "players", currentUser.uid);
       await setDoc(
         playerDoc,
         {
@@ -112,7 +110,7 @@ export default function SetupScreen({ onJoinRoom, user }: SetupScreenProps) {
         { merge: true }
       );
 
-      await setDoc(roomDoc, { playerIds: arrayUnion(user.uid) }, { merge: true });
+      await setDoc(roomDoc, { playerIds: arrayUnion(currentUser.uid) }, { merge: true });
 
       onJoinRoom(code);
     } catch (e) {
