@@ -36,10 +36,16 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
         onLeave();
       }
       setLoading(false);
+    }, (error) => {
+      console.error("Room snapshot error:", error);
+      toast.error("Sei stato rimosso dalla stanza o la stanza non esiste più.");
+      onLeave();
     });
 
     const unsubPlayers = onSnapshot(query(collection(db, 'rooms', roomId, 'players'), orderBy('joinedAt')), (snap) => {
       setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.error("Players snapshot error:", error);
     });
 
     return () => {
@@ -54,10 +60,18 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
 
     const handleBeforeUnload = () => {
       if (room.hostId === user.uid) {
-        updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
+        updateDoc(doc(db, 'rooms', roomId), { status: 'closed', closedReason: "L'host ha chiuso la stanza." }).catch(() => {});
       } else {
         if (room.status === 'playing') {
-          updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
+          const me = players.find(p => p.id === user.uid);
+          const playerName = me?.name || 'Un giocatore';
+          updateDoc(doc(db, 'rooms', roomId), { 
+            status: 'lobby', 
+            phase: 'waiting',
+            lobbyReason: `${playerName} ha abbandonato la stanza.`,
+            playerIds: arrayRemove(user.uid)
+          }).catch(() => {});
+          deleteDoc(doc(db, 'rooms', roomId, 'players', user.uid)).catch(() => {});
         } else {
           deleteDoc(doc(db, 'rooms', roomId, 'players', user.uid)).catch(() => {});
           updateDoc(doc(db, 'rooms', roomId), { playerIds: arrayRemove(user.uid) }).catch(() => {});
@@ -93,7 +107,14 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
             const timeout = room.status === 'playing' ? 300000 : 60000; // 5 mins in game, 1 min in lobby
             if (now - pingTime > timeout) {
               if (room.status === 'playing') {
-                updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
+                const playerName = p.name || 'Un giocatore';
+                updateDoc(doc(db, 'rooms', roomId), { 
+                  status: 'lobby', 
+                  phase: 'waiting',
+                  lobbyReason: `${playerName} si è disconnesso.`,
+                  playerIds: arrayRemove(p.id)
+                }).catch(() => {});
+                deleteDoc(doc(db, 'rooms', roomId, 'players', p.id)).catch(() => {});
               } else {
                 deleteDoc(doc(db, 'rooms', roomId, 'players', p.id)).catch(() => {});
                 updateDoc(doc(db, 'rooms', roomId), { playerIds: arrayRemove(p.id) }).catch(() => {});
@@ -108,7 +129,10 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
           const pingTime = host.lastPing.toMillis ? host.lastPing.toMillis() : (host.lastPing.seconds * 1000);
           const timeout = room.status === 'playing' ? 300000 : 60000; // 5 mins in game, 1 min in lobby
           if (now - pingTime > timeout) {
-            updateDoc(doc(db, 'rooms', roomId), { status: 'closed' }).catch(() => {});
+            updateDoc(doc(db, 'rooms', roomId), { 
+              status: 'closed',
+              closedReason: "L'host si è disconnesso."
+            }).catch(() => {});
           }
         }
       }

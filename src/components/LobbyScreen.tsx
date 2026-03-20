@@ -2,11 +2,22 @@ import { doc, updateDoc, runTransaction, serverTimestamp, deleteDoc, arrayRemove
 import { db } from "../firebase";
 import { countTeams, MAX_PLAYERS, shuffle, buildDeck, dealFullDeck } from "../lib/gameLogic";
 import { Users, Copy, Check, LogOut, Play, UserMinus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 
 export default function LobbyScreen({ room, players, user, onLeave }: any) {
   const [copied, setCopied] = useState(false);
   const isHost = room.hostId === user.uid;
+
+  useEffect(() => {
+    if (room.lobbyReason) {
+      toast.error(room.lobbyReason);
+      if (isHost) {
+        updateDoc(doc(db, "rooms", room.id), { lobbyReason: null }).catch(() => {});
+      }
+    }
+  }, [room.lobbyReason, room.id, isHost]);
 
   const handleLeave = async () => {
     try {
@@ -26,6 +37,8 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
     }
     onLeave();
   };
+
+  const [playerToKick, setPlayerToKick] = useState<string | null>(null);
 
   const handleCopyCode = async () => {
     try {
@@ -50,13 +63,18 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
 
   const kickPlayer = async (playerId: string) => {
     if (!isHost || playerId === user.uid) return;
-    if (!confirm("Sei sicuro di voler espellere questo giocatore?")) return;
+    setPlayerToKick(playerId);
+  };
+
+  const confirmKickPlayer = async () => {
+    if (!playerToKick) return;
     try {
-      await deleteDoc(doc(db, "rooms", room.id, "players", playerId));
-      await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(playerId) });
+      await deleteDoc(doc(db, "rooms", room.id, "players", playerToKick));
+      await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(playerToKick) });
     } catch (e) {
       console.error(e);
     }
+    setPlayerToKick(null);
   };
 
   const updateTeam = async (playerId: string, team: string) => {
@@ -65,7 +83,7 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
     const player = players.find((p: any) => p.id === playerId);
     
     if (team && counts[team as "A" | "B"] >= 2 && player?.team !== team) {
-      alert("La squadra selezionata è già completa.");
+      toast.error("La squadra selezionata è già completa.");
       return;
     }
     
@@ -133,9 +151,9 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
         });
       });
     } catch (e: any) {
-      if (e.message.includes("Teams")) alert("Assegna 2 giocatori per squadra prima di iniziare.");
-      else if (e.message.includes("Not enough")) alert("Servono 4 giocatori.");
-      else alert("Impossibile avviare la partita.");
+      if (e.message.includes("Teams")) toast.error("Assegna 2 giocatori per squadra prima di iniziare.");
+      else if (e.message.includes("Not enough")) toast.error("Servono 4 giocatori.");
+      else toast.error("Impossibile avviare la partita.");
     }
   };
 
@@ -250,6 +268,39 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
           In attesa che l'host avvii la partita...
         </div>
       )}
+
+      {/* Kick Confirm Modal */}
+      <AnimatePresence>
+        {playerToKick && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl"
+            >
+              <h3 className="text-xl font-bold text-stone-900 mb-2">Espelli giocatore</h3>
+              <p className="text-stone-600 mb-6">
+                Sei sicuro di voler espellere questo giocatore dalla stanza?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setPlayerToKick(null)}
+                  className="px-4 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={confirmKickPlayer}
+                  className="px-4 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg shadow-red-500/20"
+                >
+                  Espelli
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

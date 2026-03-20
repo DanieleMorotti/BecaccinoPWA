@@ -19,17 +19,18 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const isMyTurn = turnPlayerId === user.uid;
   const phase = room.phase;
 
-  const prevBriscolaRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (room.briscolaSuit && !prevBriscolaRef.current) {
-      const suitName = SUITS.find(s => s.key === room.briscolaSuit)?.label;
-      if (suitName) {
-        toast.success(`La briscola scelta è ${suitName}`);
+    if (room.briscolaSuit && room.handNumber) {
+      const seenKey = `briscola_seen_${room.id}_${room.handNumber}`;
+      if (!sessionStorage.getItem(seenKey)) {
+        const suitName = SUITS.find(s => s.key === room.briscolaSuit)?.label;
+        if (suitName) {
+          toast.success(`La briscola scelta è ${suitName}`);
+          sessionStorage.setItem(seenKey, 'true');
+        }
       }
     }
-    prevBriscolaRef.current = room.briscolaSuit;
-  }, [room.briscolaSuit]);
+  }, [room.briscolaSuit, room.handNumber, room.id]);
 
   useEffect(() => {
     const handleResize = () => setIsHandOpen(window.innerWidth >= 900);
@@ -40,7 +41,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.hud-menu')) {
+      if (document.contains(target) && !target.closest('.hud-menu')) {
         setIsScoresOpen(false);
         setIsInfoOpen(false);
       }
@@ -64,13 +65,23 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const tableMap = new Map((room.table || []).map((entry: any) => [entry.playerId, entry.card]));
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
   const handleLeave = async () => {
-    if (room.status === "playing" || isHost) {
+    if (isHost) {
       await updateDoc(doc(db, "rooms", room.id), { 
         status: "closed",
-        closedReason: `L'utente ${user.displayName || 'Sconosciuto'} ha abbandonato la partita.`
+        closedReason: `L'host ha chiuso la stanza.`
       });
+    } else if (room.status === "playing") {
+      const playerName = me?.name || user.displayName || 'Un giocatore';
+      await updateDoc(doc(db, "rooms", room.id), { 
+        status: "lobby",
+        phase: "waiting",
+        lobbyReason: `${playerName} ha abbandonato la stanza.`,
+        playerIds: arrayRemove(user.uid)
+      });
+      await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
     } else {
       await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
       await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
@@ -80,8 +91,12 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
 
   const endGame = async () => {
     if (!isHost) return;
-    if (!confirm("Sei sicuro di voler terminare la partita e tornare alla lobby?")) return;
+    setShowEndGameConfirm(true);
+  };
+
+  const confirmEndGame = async () => {
     await updateDoc(doc(db, "rooms", room.id), { status: "lobby", phase: "waiting" });
+    setShowEndGameConfirm(false);
   };
 
   const chooseBriscola = async (suit: string) => {
@@ -396,11 +411,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         {/* Left side: Punti */}
         <div className="flex flex-col gap-2 items-start pointer-events-auto hud-menu">
           <button 
-            onClick={() => { setIsScoresOpen(!isScoresOpen); setIsInfoOpen(false); }}
-            className={cn(
-              "bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-between gap-2 border border-white/10 shadow-lg transition-all duration-200",
-              isScoresOpen ? "w-40" : "w-auto"
-            )}
+            onClick={(e) => { e.stopPropagation(); setIsScoresOpen(!isScoresOpen); setIsInfoOpen(false); }}
+            className="bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-between gap-2 border border-white/10 shadow-lg"
           >
             Punti {isScoresOpen ? <ChevronUp className="w-4 h-4 pointer-events-none" /> : <ChevronDown className="w-4 h-4 pointer-events-none" />}
           </button>
@@ -438,11 +450,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         {/* Right side: Info */}
         <div className="flex flex-col gap-2 items-end pointer-events-auto hud-menu">
           <button 
-            onClick={() => { setIsInfoOpen(!isInfoOpen); setIsScoresOpen(false); }}
-            className={cn(
-              "bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-between gap-2 border border-white/10 shadow-lg transition-all duration-200",
-              isInfoOpen ? "w-48" : "w-auto"
-            )}
+            onClick={(e) => { e.stopPropagation(); setIsInfoOpen(!isInfoOpen); setIsScoresOpen(false); }}
+            className="bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-between gap-2 border border-white/10 shadow-lg"
           >
             {isInfoOpen ? <ChevronUp className="w-4 h-4 pointer-events-none" /> : <ChevronDown className="w-4 h-4 pointer-events-none" />} Info
           </button>
@@ -584,7 +593,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       {room.status !== "ended" && (
         <div className="relative z-30">
           <button 
-            onClick={() => setIsHandOpen(!isHandOpen)}
+            onClick={(e) => { e.stopPropagation(); setIsHandOpen(!isHandOpen); }}
             className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-800/90 backdrop-blur-md text-white px-4 py-1.5 rounded-t-xl text-xs font-medium flex items-center gap-1 border border-b-0 border-white/10"
           >
             {isHandOpen ? <ChevronDown className="w-4 h-4 pointer-events-none" /> : <ChevronUp className="w-4 h-4 pointer-events-none" />}
@@ -698,6 +707,39 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                   className="px-4 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg shadow-red-500/20"
                 >
                   Esci
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* End Game Confirm Modal */}
+      <AnimatePresence>
+        {showEndGameConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-stone-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full shadow-2xl"
+            >
+              <h3 className="text-xl font-bold text-white mb-2">Termina partita</h3>
+              <p className="text-stone-300 mb-6">
+                Sei sicuro di voler terminare la partita e tornare alla lobby?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowEndGameConfirm(false)}
+                  className="px-4 py-2 text-sm font-medium text-stone-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={confirmEndGame}
+                  className="px-4 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg shadow-red-500/20"
+                >
+                  Termina
                 </button>
               </div>
             </motion.div>

@@ -3,6 +3,7 @@ import { doc, setDoc, getDoc, collection, query, orderBy, getDocs, serverTimesta
 import { db, ensureAuth } from "../firebase";
 import { generateRoomCode, MAX_PLAYERS } from "../lib/gameLogic";
 import { Plus, LogIn } from "lucide-react";
+import { toast } from "sonner";
 
 interface SetupScreenProps {
   onJoinRoom: (roomId: string) => void;
@@ -26,7 +27,7 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
   };
 
   const createRoom = async () => {
-    if (!playerName.trim()) return alert("Inserisci un nome giocatore.");
+    if (!playerName.trim()) return toast.error("Inserisci un nome giocatore.");
     setLoading(true);
     try {
       const currentUser = await ensureAuth();
@@ -59,16 +60,16 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
       onJoinRoom(roomId);
     } catch (e) {
       console.error(e);
-      alert("Errore durante la creazione della stanza.");
+      toast.error("Errore durante la creazione della stanza.");
     } finally {
       setLoading(false);
     }
   };
 
   const joinRoom = async () => {
-    if (!playerName.trim()) return alert("Inserisci un nome giocatore.");
+    if (!playerName.trim()) return toast.error("Inserisci un nome giocatore.");
     const code = roomCode.trim().toUpperCase();
-    if (!code) return alert("Inserisci un codice stanza.");
+    if (!code) return toast.error("Inserisci un codice stanza.");
     setLoading(true);
     try {
       const currentUser = await ensureAuth();
@@ -76,14 +77,14 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
       const roomSnap = await getDoc(roomDoc);
       
       if (!roomSnap.exists()) {
-        alert("Stanza non trovata.");
+        toast.error("Stanza non trovata.");
         setLoading(false);
         return;
       }
 
       const room = roomSnap.data();
       if (room.status !== "lobby") {
-        alert("La partita è già iniziata.");
+        toast.error("La partita è già iniziata.");
         setLoading(false);
         return;
       }
@@ -93,7 +94,7 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
       const alreadyJoined = playersSnap.docs.some((d) => d.id === currentUser.uid);
       
       if (!alreadyJoined && playersSnap.size >= MAX_PLAYERS) {
-        alert("La stanza è piena.");
+        toast.error("La stanza è piena.");
         setLoading(false);
         return;
       }
@@ -115,7 +116,7 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
       onJoinRoom(code);
     } catch (e) {
       console.error(e);
-      alert("Errore durante l'accesso alla stanza.");
+      toast.error("Errore durante l'accesso alla stanza.");
     } finally {
       setLoading(false);
     }
