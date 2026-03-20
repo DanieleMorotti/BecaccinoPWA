@@ -45,17 +45,12 @@ quires recent sign‑in. (firebase.google.com
 
 ## UI
 
-- Still make it more essential in the homepage
-- check how the table / game is rendered with 4 people
-- add a logo for the homepage / create an icon
-- make the cards zoomable because in small screens how do you deal with strict width?
+- add an image to the homepage / create an icon for the webapp
+- from settings possibility of different UI for cards? (napoletane vs romagnole tipo)
 
 
 ## APP
 
-- rebuild with google ai studio like showscout with build and react for better ux ui
-- when the hand is shown, 5 cards per row to avoid scrolling overflow + remove the name of the cards, the image is enough 
-- check if suit is mandatory or not checked, in case, the only playable cards must be the allowed ones.
-- do a kind of build like for showscout ai, to be more efficient (?) and avoid cdn import
-    * if done, change the config settings for firebase, login in the console and copy the npm settings instead of cdn
 - add history available with a small history button with all the played cards in some pretty way
+- add striscio, busso etc like a side menu where "apri mano" is. Once selected and the card is played, at the center will appear the name of the specified action.
+- add a settings button in the info, near the leave room, to choose how to order the cards (asc, desc) and something else.

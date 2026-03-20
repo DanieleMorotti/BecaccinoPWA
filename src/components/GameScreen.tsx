@@ -24,6 +24,18 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.hud-menu')) {
+        setIsScoresOpen(false);
+        setIsInfoOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const getSeatMap = () => {
     if (!order.length) return null;
     const startIndex = order.includes(user.uid) ? order.indexOf(user.uid) : 0;
@@ -38,21 +50,17 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const seatMap = getSeatMap();
   const tableMap = new Map((room.table || []).map((entry: any) => [entry.playerId, entry.card]));
 
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
   const handleLeave = async () => {
-    const message = room.status === "playing"
-      ? "Uscendo dalla partita, la sessione terminerà per tutti. Vuoi uscire davvero?"
-      : "Vuoi uscire dalla stanza?";
-    if (!confirm(message)) return;
-    
-    try {
-      if (room.status === "playing" || isHost) {
-        await updateDoc(doc(db, "rooms", room.id), { status: "closed" });
-      } else {
-        await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
-        await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
-      }
-    } catch (e) {
-      console.error(e);
+    if (room.status === "playing" || isHost) {
+      await updateDoc(doc(db, "rooms", room.id), { 
+        status: "closed",
+        closedReason: `L'utente ${user.displayName || 'Sconosciuto'} ha abbandonato la partita.`
+      });
+    } else {
+      await deleteDoc(doc(db, "rooms", room.id, "players", user.uid));
+      await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
     }
     onLeave();
   };
@@ -373,10 +381,13 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       {/* HUD */}
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-10 pointer-events-none">
         {/* Left side: Punti */}
-        <div className="flex flex-col gap-2 pointer-events-auto">
+        <div className="flex flex-col gap-2 pointer-events-auto hud-menu">
           <button 
             onClick={() => { setIsScoresOpen(!isScoresOpen); setIsInfoOpen(false); }}
-            className="bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 border border-white/10 shadow-lg"
+            className={cn(
+              "bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-between gap-2 border border-white/10 shadow-lg transition-all duration-200",
+              isScoresOpen ? "w-40" : "w-auto"
+            )}
           >
             Punti {isScoresOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -386,8 +397,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col gap-3 w-40 shadow-xl"
+                exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                className="bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col gap-3 w-40 shadow-xl origin-top"
               >
                 <div className="flex flex-col">
                   <span className="text-xs text-emerald-300 font-medium">Squadra A</span>
@@ -412,12 +423,15 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         </div>
 
         {/* Right side: Info */}
-        <div className="flex flex-col gap-2 items-end pointer-events-auto">
+        <div className="flex flex-col gap-2 items-end pointer-events-auto hud-menu">
           <button 
             onClick={() => { setIsInfoOpen(!isInfoOpen); setIsScoresOpen(false); }}
-            className="bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 border border-white/10 shadow-lg"
+            className={cn(
+              "bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-between gap-2 border border-white/10 shadow-lg transition-all duration-200",
+              isInfoOpen ? "w-48" : "w-auto"
+            )}
           >
-            Info {isInfoOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {isInfoOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} Info
           </button>
 
           <AnimatePresence>
@@ -425,8 +439,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col gap-3 w-48 shadow-xl items-end text-right"
+                exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                className="bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col gap-3 w-48 shadow-xl items-end text-right origin-top"
               >
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-emerald-300 font-medium uppercase tracking-wider">Mano</span>
@@ -451,7 +465,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                       Termina
                     </button>
                   )}
-                  <button onClick={handleLeave} className="p-1.5 bg-emerald-800/80 text-emerald-300 hover:text-white hover:bg-emerald-700 rounded-lg transition-colors border border-white/10 shadow-lg">
+                  <button onClick={() => setShowLeaveConfirm(true)} className="p-1.5 bg-emerald-800/80 text-emerald-300 hover:text-white hover:bg-emerald-700 rounded-lg transition-colors border border-white/10 shadow-lg">
                     <LogOut className="w-5 h-5" />
                   </button>
                 </div>
@@ -573,7 +587,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                 className="bg-emerald-800/90 backdrop-blur-md border-t border-white/10 overflow-hidden"
               >
                 <div className="p-2 sm:p-4">
-                  <div className="grid grid-cols-5 md:flex md:flex-row md:flex-wrap md:justify-center gap-1.5 sm:gap-2 max-w-md md:max-w-4xl mx-auto">
+                  <div className="grid grid-cols-5 lg:flex lg:flex-row lg:flex-nowrap lg:justify-center gap-1.5 sm:gap-2 max-w-md md:max-w-xl lg:max-w-none mx-auto px-2">
                     {sortedHand.map((card: string) => {
                       const isPlayable = isCardPlayable(card);
                       return (
@@ -581,7 +595,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                           key={card}
                           onClick={() => handleCardClick(card)}
                           className={cn(
-                            "relative w-full md:w-24 aspect-[2/3] md:aspect-auto md:h-36 rounded-lg md:rounded-xl bg-white p-0.5 md:p-1 shadow-md md:shadow-lg transition-all duration-200",
+                            "relative w-full lg:w-20 xl:w-24 aspect-[2/3] rounded-lg md:rounded-xl bg-white p-0.5 md:p-1 shadow-md md:shadow-lg transition-all duration-200 shrink-0",
                             isPlayable ? "cursor-pointer ring-2 ring-amber-400 shadow-amber-400/20" : "opacity-80 grayscale-[50%]",
                             selectedCardToPlay === card && "ring-4 ring-emerald-500 shadow-emerald-500/50 -translate-y-2"
                           )}
@@ -643,6 +657,40 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
           </div>
         </div>
       )}
+      {/* Leave Confirm Modal */}
+      <AnimatePresence>
+        {showLeaveConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-stone-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full shadow-2xl"
+            >
+              <h3 className="text-xl font-bold text-white mb-2">Abbandona partita</h3>
+              <p className="text-stone-300 mb-6">
+                {room.status === "playing" 
+                  ? "Uscendo dalla partita, la sessione terminerà per tutti. Vuoi uscire davvero?" 
+                  : "Vuoi uscire dalla stanza?"}
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  className="px-4 py-2 text-sm font-medium text-stone-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={handleLeave}
+                  className="px-4 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg shadow-red-500/20"
+                >
+                  Esci
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

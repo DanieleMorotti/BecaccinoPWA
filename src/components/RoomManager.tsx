@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import LobbyScreen from './LobbyScreen';
 import GameScreen from './GameScreen';
 import { User } from 'firebase/auth';
+import { toast } from 'sonner';
 
 interface RoomManagerProps {
   roomId: string;
@@ -21,6 +22,9 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
       if (snap.exists()) {
         const data = snap.data();
         if (data.status === 'closed') {
+          if (data.closedReason) {
+            toast.error(data.closedReason);
+          }
           onLeave();
         } else {
           setRoom({ id: snap.id, ...data });
