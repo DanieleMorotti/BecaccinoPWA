@@ -26,6 +26,9 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
             toast.error(data.closedReason);
           }
           onLeave();
+        } else if (data.playerIds && !data.playerIds.includes(user.uid)) {
+          toast.error("Sei stato rimosso dalla stanza.");
+          onLeave();
         } else {
           setRoom({ id: snap.id, ...data });
         }

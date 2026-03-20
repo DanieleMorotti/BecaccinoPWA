@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, updateDoc, runTransaction, deleteDoc, arrayRemove } from "firebase/firestore";
 import { db } from "../firebase";
 import { SUITS, cardImage, formatCard, compareCards, cardPoints, pointsFromUnits, buildDeck, shuffle, dealFullDeck, POINT_UNIT, parseCard, TRICK_RANK } from "../lib/gameLogic";
 import { LogOut, ChevronUp, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
+import { toast } from "sonner";
 
 export default function GameScreen({ room, players, user, onLeave }: any) {
   const [isHandOpen, setIsHandOpen] = useState(window.innerWidth >= 900);
@@ -17,6 +18,18 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const turnPlayerId = order[room.turnIndex];
   const isMyTurn = turnPlayerId === user.uid;
   const phase = room.phase;
+
+  const prevBriscolaRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (room.briscolaSuit && !prevBriscolaRef.current) {
+      const suitName = SUITS.find(s => s.key === room.briscolaSuit)?.label;
+      if (suitName) {
+        toast.success(`La briscola scelta è ${suitName}`);
+      }
+    }
+    prevBriscolaRef.current = room.briscolaSuit;
+  }, [room.briscolaSuit]);
 
   useEffect(() => {
     const handleResize = () => setIsHandOpen(window.innerWidth >= 900);
@@ -381,7 +394,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       {/* HUD */}
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-10 pointer-events-none">
         {/* Left side: Punti */}
-        <div className="flex flex-col gap-2 pointer-events-auto hud-menu">
+        <div className="flex flex-col gap-2 items-start pointer-events-auto hud-menu">
           <button 
             onClick={() => { setIsScoresOpen(!isScoresOpen); setIsInfoOpen(false); }}
             className={cn(
@@ -389,7 +402,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
               isScoresOpen ? "w-40" : "w-auto"
             )}
           >
-            Punti {isScoresOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            Punti {isScoresOpen ? <ChevronUp className="w-4 h-4 pointer-events-none" /> : <ChevronDown className="w-4 h-4 pointer-events-none" />}
           </button>
           
           <AnimatePresence>
@@ -431,7 +444,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
               isInfoOpen ? "w-48" : "w-auto"
             )}
           >
-            {isInfoOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} Info
+            {isInfoOpen ? <ChevronUp className="w-4 h-4 pointer-events-none" /> : <ChevronDown className="w-4 h-4 pointer-events-none" />} Info
           </button>
 
           <AnimatePresence>
@@ -574,7 +587,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
             onClick={() => setIsHandOpen(!isHandOpen)}
             className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-800/90 backdrop-blur-md text-white px-4 py-1.5 rounded-t-xl text-xs font-medium flex items-center gap-1 border border-b-0 border-white/10"
           >
-            {isHandOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            {isHandOpen ? <ChevronDown className="w-4 h-4 pointer-events-none" /> : <ChevronUp className="w-4 h-4 pointer-events-none" />}
             {isHandOpen ? "Nascondi Mano" : "Mostra Mano"}
           </button>
           
