@@ -9,6 +9,8 @@ import { cn } from "../lib/utils";
 export default function GameScreen({ room, players, user, onLeave }: any) {
   const [isHandOpen, setIsHandOpen] = useState(window.innerWidth >= 900);
   const [selectedCardToPlay, setSelectedCardToPlay] = useState<string | null>(null);
+  const [isScoresOpen, setIsScoresOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
   const me = players.find((p: any) => p.id === user.uid);
   const isHost = room.hostId === user.uid;
   const order = room.playerOrder || [];
@@ -280,8 +282,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         position === "right" && "right-4 top-1/2 -translate-y-1/2"
       )}>
         <div className={cn(
-          "px-3 py-1 rounded-full text-xs font-semibold shadow-sm border whitespace-nowrap flex items-center gap-1.5",
-          isTurn ? "bg-emerald-500 text-white border-emerald-600" : "bg-white/90 text-stone-800 border-stone-200/50"
+          "px-3 py-1 rounded-full text-xs font-semibold shadow-sm border whitespace-nowrap flex items-center gap-1.5 transition-all duration-300",
+          isTurn ? "bg-amber-400 text-amber-950 border-amber-500 shadow-[0_0_15px_rgba(251,191,36,0.6)] scale-110" : "bg-white/90 text-stone-800 border-stone-200/50"
         )}>
           <span>{player?.name || "--"}</span>
           {team && (
@@ -331,61 +333,92 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
 
       {/* HUD */}
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-10 pointer-events-none">
-        {/* Left side */}
+        {/* Left side: Punti */}
         <div className="flex flex-col gap-2 pointer-events-auto">
-          <div className="bg-emerald-900/80 backdrop-blur-md rounded-xl p-2.5 border border-white/10 flex flex-col w-32">
-            <span className="text-xs text-emerald-300 font-medium">Squadra A</span>
-            <span className="text-[10px] text-emerald-400/80 truncate">{getTeamNames("A")}</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold text-white leading-none">{room.scoreTeamA || 0}</span>
-              <span className="text-xs text-emerald-300">+{pointsFromUnits(Number(room.handTeamA) || 0)}</span>
-            </div>
-          </div>
-          <div className="bg-emerald-900/80 backdrop-blur-md rounded-lg p-2 border border-white/10 text-center">
-            <span className="text-xs text-emerald-300 font-mono uppercase tracking-wider">Mano {room.handNumber || 1}</span>
-          </div>
-        </div>
-
-        {/* Right side */}
-        <div className="flex flex-col gap-2 items-end pointer-events-auto">
-          <div className="bg-emerald-900/80 backdrop-blur-md rounded-xl p-2.5 border border-white/10 flex flex-col items-end w-32 text-right">
-            <span className="text-xs text-emerald-300 font-medium">Squadra B</span>
-            <span className="text-[10px] text-emerald-400/80 truncate">{getTeamNames("B")}</span>
-            <div className="flex items-baseline gap-2 mt-1 flex-row-reverse">
-              <span className="text-2xl font-bold text-white leading-none">{room.scoreTeamB || 0}</span>
-              <span className="text-xs text-emerald-300">+{pointsFromUnits(Number(room.handTeamB) || 0)}</span>
-            </div>
-          </div>
-          {room.briscolaSuit && (
-            <div className="bg-emerald-900/80 backdrop-blur-md rounded-lg p-2 border border-white/10 flex flex-col items-end">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-emerald-200 uppercase tracking-wider">Briscola</span>
-                <span className="font-bold">{SUITS.find(s => s.key === room.briscolaSuit)?.label}</span>
-              </div>
-              <span className="text-[10px] text-emerald-400">di {players.find((p: any) => p.id === room.briscolaChooserId)?.name}</span>
-            </div>
-          )}
-          <div className="flex gap-2 mt-1">
-            {isHost && (
-              <button onClick={endGame} className="px-3 py-1.5 text-xs font-medium bg-red-500/80 text-white hover:bg-red-500 rounded-lg transition-colors shadow-lg">
-                Termina
-              </button>
+          <button 
+            onClick={() => { setIsScoresOpen(!isScoresOpen); setIsInfoOpen(false); }}
+            className="bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 border border-white/10 shadow-lg"
+          >
+            Punti {isScoresOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          <AnimatePresence>
+            {isScoresOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col gap-3 w-40 shadow-xl"
+              >
+                <div className="flex flex-col">
+                  <span className="text-xs text-emerald-300 font-medium">Squadra A</span>
+                  <span className="text-[10px] text-emerald-400/80 truncate">{getTeamNames("A")}</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-bold text-white leading-none">{room.scoreTeamA || 0}</span>
+                    <span className="text-xs text-emerald-300">+{pointsFromUnits(Number(room.handTeamA) || 0)}</span>
+                  </div>
+                </div>
+                <div className="h-px bg-white/10 w-full" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-emerald-300 font-medium">Squadra B</span>
+                  <span className="text-[10px] text-emerald-400/80 truncate">{getTeamNames("B")}</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-bold text-white leading-none">{room.scoreTeamB || 0}</span>
+                    <span className="text-xs text-emerald-300">+{pointsFromUnits(Number(room.handTeamB) || 0)}</span>
+                  </div>
+                </div>
+              </motion.div>
             )}
-            <button onClick={handleLeave} className="p-1.5 bg-emerald-900/80 text-emerald-300 hover:text-white hover:bg-emerald-800 rounded-lg transition-colors border border-white/10 shadow-lg">
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
+          </AnimatePresence>
         </div>
-      </div>
 
-      {/* Turn Indicator */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-        <div className="bg-emerald-900/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-lg">
-          <span className="font-medium text-sm text-white">
-            {room.status === "ended" ? "Partita Chiusa" : 
-             phase === "choose_briscola" ? (room.briscolaChooserId === user.uid ? "Scegli la briscola!" : `Attesa briscola da ${players.find((p: any)=>p.id===room.briscolaChooserId)?.name}`) :
-             isMyTurn ? "Tocca a te!" : `Turno di ${players.find((p: any)=>p.id===turnPlayerId)?.name}`}
-          </span>
+        {/* Right side: Info */}
+        <div className="flex flex-col gap-2 items-end pointer-events-auto">
+          <button 
+            onClick={() => { setIsInfoOpen(!isInfoOpen); setIsScoresOpen(false); }}
+            className="bg-emerald-900/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 border border-white/10 shadow-lg"
+          >
+            Info {isInfoOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          <AnimatePresence>
+            {isInfoOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col gap-3 w-48 shadow-xl items-end text-right"
+              >
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-emerald-300 font-medium uppercase tracking-wider">Mano</span>
+                  <span className="text-lg font-bold text-white">{room.handNumber || 1}</span>
+                </div>
+                
+                {room.briscolaSuit && (
+                  <>
+                    <div className="h-px bg-white/10 w-full" />
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-emerald-300 font-medium uppercase tracking-wider">Briscola</span>
+                      <span className="text-lg font-bold text-white">{SUITS.find(s => s.key === room.briscolaSuit)?.label}</span>
+                      <span className="text-[10px] text-emerald-400">scelta da {players.find((p: any) => p.id === room.briscolaChooserId)?.name}</span>
+                    </div>
+                  </>
+                )}
+
+                <div className="h-px bg-white/10 w-full" />
+                <div className="flex gap-2 w-full justify-end">
+                  {isHost && (
+                    <button onClick={endGame} className="px-3 py-1.5 text-xs font-medium bg-red-500/80 text-white hover:bg-red-500 rounded-lg transition-colors shadow-lg">
+                      Termina
+                    </button>
+                  )}
+                  <button onClick={handleLeave} className="p-1.5 bg-emerald-800/80 text-emerald-300 hover:text-white hover:bg-emerald-700 rounded-lg transition-colors border border-white/10 shadow-lg">
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -411,6 +444,19 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
             >
               <div className="bg-emerald-900/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-emerald-500/30 text-lg font-serif font-bold whitespace-nowrap">
                 Ha preso {players.find((p: any) => p.id === room.trickWinnerId)?.name}!
+              </div>
+            </motion.div>
+          )}
+          
+          {phase === "choose_briscola" && room.briscolaChooserId !== user.uid && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+            >
+              <div className="bg-emerald-900/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-emerald-500/30 text-sm font-medium whitespace-nowrap">
+                Attesa briscola da {players.find((p: any) => p.id === room.briscolaChooserId)?.name}...
               </div>
             </motion.div>
           )}
