@@ -158,7 +158,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       hand.splice(index, 1);
       const table = [...(currentRoom.table || []), { playerId: user.uid, card }];
 
-      let nextIndex = (currentRoom.turnIndex + 1) % order.length;
+      let nextIndex = (currentRoom.turnIndex - 1 + order.length) % order.length;
 
       if (table.length === order.length) {
         const lead = table[0].card.split('-')[0];
@@ -219,7 +219,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       const order = currentRoom.playerOrder || [];
       const deck = shuffle(buildDeck());
       const hands = dealFullDeck(order, deck);
-      const briscolaChooserIndex = ((currentRoom.briscolaChooserIndex ?? 0) + 1) % order.length;
+      const briscolaChooserIndex = ((currentRoom.briscolaChooserIndex ?? 0) - 1 + order.length) % order.length;
       const briscolaChooserId = order[briscolaChooserIndex];
 
       order.forEach((playerId: string) => {
