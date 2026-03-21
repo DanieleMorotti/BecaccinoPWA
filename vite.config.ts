@@ -15,6 +15,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,  // to make it work in npm run dev
+      },
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Becaccino PWA',

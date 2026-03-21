@@ -32,7 +32,7 @@ Firebase Auth doesn’t have a TTL setting. The typical approach is:
 ## UI
 
 - from settings possibility of different UI for cards? (napoletane vs romagnole tipo)
-
+- aggiungere istruzioni per installazione su ios.
 
 ## APP
 
