@@ -1,15 +1,33 @@
-# Becaccino PWA
+<h1 align="center">
+  <img src="./public/icons/icon-512.png" alt="Becaccino PWA icon" width="90" height="90" style="vertical-align: middle;" />
+  &nbsp;Becaccino PWA
+</h1>
 
-PWA multiplayer con stanze realtime basata su Firebase Firestore e autenticazione anonima.
+<p align="center">
+  A web app (PWA) to play "Becaccino" with friends.
+</p>
 
-## Setup rapido (Firebase)
-1. Crea un progetto Firebase.
-2. Abilita Authentication -> Anonymous.
-3. Abilita Cloud Firestore (modalita produzione o test).
-4. Copia la configurazione del progetto e sostituisci i valori in `app.js`.
-5. Incolla le regole di sicurezza da `firestore.rules` nella console Firebase.
-6. Carica i file statici su GitHub Pages.
 
-## Note
-- Logica Becaccino 4 giocatori 2v2 con briscola, obbligo di rispondere al seme, prese e punteggi in terzi.
-- I punti della mano sono calcolati in terzi e arrotondati per difetto al punto intero prima di aggiungerli alla partita.
+## Installation
+
+> Make sure you have [Node.js](https://nodejs.org/) installed.
+
+**Run all commands from the project root.**
+
+Clone the repository and install dependencies:
+
+```bash
+npm install
+```
+
+Then you can launch a local test:
+
+```bash
+npm run dev
+```
+
+Or build the files, which will be created in the `dist` directory:
+
+```bash
+npm run build
+```

@@ -1,0 +1,9 @@
+node_modules/
+build/
+dev-dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+TODO.md

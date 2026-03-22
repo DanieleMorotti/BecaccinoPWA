@@ -1,0 +1,33 @@
+{
+  "name": "becaccino-pwa",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "overrides": {
+    "serialize-javascript": ">=7.0.3"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "clsx": "^2.1.1",
+    "firebase": "^12.10.0",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^22.14.0",
+    "tailwindcss": "^4.2.2",
+    "tsx": "^4.21.0",
+    "vite": "^6.2.0",
+    "vite-plugin-pwa": "^1.2.0"
+  }
+}
