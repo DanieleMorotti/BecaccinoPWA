@@ -18,6 +18,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const turnPlayerId = order[room.turnIndex];
   const isMyTurn = turnPlayerId === user.uid;
   const phase = room.phase;
+  const tableBgUrl = `${import.meta.env.BASE_URL}assets/table.jpg`;
 
   useEffect(() => {
     if (room.briscolaSuit && room.handNumber) {
@@ -403,7 +404,10 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   });
 
   return (
-    <div className="fixed inset-0 bg-emerald-950 text-stone-100 flex flex-col overflow-hidden bg-[url('/assets/table.jpg')] bg-cover bg-center">
+    <div
+      className="fixed inset-0 bg-emerald-950 text-stone-100 flex flex-col overflow-hidden bg-cover bg-center"
+      style={{ backgroundImage: `url('${tableBgUrl}')` }}
+    >
       <div className="absolute inset-0 bg-emerald-950/80 pointer-events-none" />
 
       {/* HUD */}

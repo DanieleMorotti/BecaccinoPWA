@@ -9,7 +9,7 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
   },
-  //base: '/projects/becaccino-pwa/dist',
+  base: '/BecaccinoPWA/dist/',
   plugins: [
     react(),
     tailwindcss(),
@@ -18,7 +18,11 @@ export default defineConfig({
       devOptions: {
         enabled: true,  // to make it work in npm run dev
       },
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg,ico}'],
+        globIgnores: ['**/icon.png'],
+      },
       manifest: {
         name: 'Becaccino PWA',
         short_name: 'Becaccino',
@@ -27,8 +31,8 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any'},
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable'},
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any'},
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable'},
         ],
       },
     }),

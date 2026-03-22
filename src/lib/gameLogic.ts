@@ -71,7 +71,8 @@ export function parseCard(card: string) {
 export function cardImage(card: string) {
   const { suit, rank } = parseCard(card);
   const suitAsset = SUITS.find((s) => s.key === suit)?.asset || suit;
-  return `assets/cards/${suitAsset}_${rank}.png`;
+  const baseUrl = import.meta.env.BASE_URL ?? "/";
+  return `${baseUrl}assets/cards/${suitAsset}_${rank}.png`;
 }
 
 export const TRICK_ORDER = ["3", "2", "1", "K", "H", "F", "7", "6", "5", "4"];
