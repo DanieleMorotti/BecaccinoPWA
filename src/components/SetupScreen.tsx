@@ -129,7 +129,7 @@ export default function SetupScreen({ onJoinRoom }: SetupScreenProps) {
 
       <div className="relative z-10 max-w-md mx-auto px-6 pt-10 pb-10">
         <div className="text-center mb-8">
-          <div className="relative mx-auto mb-4 h-32 w-32">
+          <div className="relative mx-auto mb-4 h-36 w-36">
             <div className="absolute inset-0 rounded-[34px] bg-gradient-to-br from-lime-300/50 via-emerald-300/30 to-amber-200/30 blur-2xl" />
             <div className="absolute -inset-1 rounded-[36px] bg-[conic-gradient(from_180deg,rgba(167,243,208,0.4),rgba(190,242,100,0.3),rgba(52,211,153,0.35),rgba(167,243,208,0.4))] opacity-70 animate-[spin_18s_linear_infinite]" />
             <div className="relative h-full w-full rounded-[30px] bg-emerald-950/70 p-2 shadow-2xl shadow-emerald-950/40 ring-1 ring-emerald-200/20">
