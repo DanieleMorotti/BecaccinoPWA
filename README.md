@@ -1,7 +1,8 @@
-<h1 align="center">
-  <img src="./public/icons/icon-512.png" alt="Becaccino PWA icon" width="90" height="90" style="vertical-align: middle;" />
-  &nbsp;Becaccino PWA
-</h1>
+<h1 align="center">Becaccino PWA</h1>
+
+<p align="center">
+  <img src="./public/icons/icon-512.png" alt="Becaccino PWA icon" width="96" height="96" />
+</p>
 
 <p align="center">
   A fast, multiplayer PWA to play the Italian card game "Becaccino" with friends.
@@ -9,7 +10,25 @@
 
 ## About
 
-Becaccino is a trick‑taking card game played in teams. This app lets you create a room, join with friends, and play from any device with a modern, installable PWA interface.
+Becaccino is a trick-taking card game played in teams. This app lets you create a room, join with friends, and play from any device with a modern, installable PWA interface.
+
+## Story & Screenshots
+
+Becaccino is best enjoyed as a quick, social ritual: create a room, share the code, and start the match. The app stays lightweight and focused so the table feels like the real thing, just faster to set up.
+
+**Homepage**  
+Create or join a room, then invite your teammates.
+
+<p align="center">
+  <img src="./docs/screenshots/homepage.png" alt="Homepage (portrait)" width="260" />
+</p>
+
+**Table**  
+Once everyone is in, the table view keeps the pace: hands, trick flow, and score all in one place.
+
+<p align="center">
+  <img src="./docs/screenshots/in_game.png" alt="Game table (portrait)" width="260" />
+</p>
 
 ## Features
 
@@ -58,7 +77,7 @@ npm run build
 
 This repo ships with a GitHub Actions workflow that builds and publishes `dist/` to GitHub Pages.
 
-1. In your GitHub repo: Settings → Pages → Source = **GitHub Actions**.
+1. In your GitHub repo: Settings > Pages > Source = **GitHub Actions**.
 2. Add the following **repository secrets** (or environment secrets on `github-pages`, see below):
    - `VITE_FIREBASE_API_KEY`
    - `VITE_FIREBASE_AUTH_DOMAIN`
@@ -70,3 +89,9 @@ This repo ships with a GitHub Actions workflow that builds and publishes `dist/`
 Notes:
 - These values are **not secret** in a client app; they will appear in the built JS bundle.
 - Firebase security comes from **Firestore rules** and **Auth**, not by hiding these values.
+
+## License
+
+Licensed under **CC BY-NC 4.0** (Attribution-NonCommercial). See `LICENSE`.
+
+
