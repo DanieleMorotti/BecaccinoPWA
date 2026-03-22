@@ -2,13 +2,28 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+const requiredEnv = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_STORAGE_BUCKET",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_APP_ID",
+] as const;
+
+for (const key of requiredEnv) {
+  if (!import.meta.env[key]) {
+    throw new Error(`Missing env var: ${key}`);
+  }
+}
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBCDflnhtbfqsU6nCAYWQ-pgnDGlOvO8f8",
-  authDomain: "becaccino-9bd67.firebaseapp.com",
-  projectId: "becaccino-9bd67",
-  storageBucket: "becaccino-9bd67.firebasestorage.app",
-  messagingSenderId: "506804103545",
-  appId: "1:506804103545:web:03d1af7c770cfa16a5e7a8"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID as string,
 };
 
 export const app = initializeApp(firebaseConfig);
