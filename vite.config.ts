@@ -4,12 +4,12 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
     port: 3000,
     host: '0.0.0.0',
   },
-  base: '/BecaccinoPWA/',
+  base: mode === 'production' ? '/BecaccinoPWA/' : '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -36,11 +36,10 @@ export default defineConfig({
         ],
       },
     }),
-  ]
-  ,
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
     },
   },
-})
+}))

@@ -66,8 +66,6 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const tableMap = new Map((room.table || []).map((entry: any) => [entry.playerId, entry.card]));
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
-
   const handleLeave = async () => {
     if (isHost) {
       await updateDoc(doc(db, "rooms", room.id), { 
@@ -88,16 +86,6 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       await updateDoc(doc(db, "rooms", room.id), { playerIds: arrayRemove(user.uid) });
     }
     onLeave();
-  };
-
-  const endGame = async () => {
-    if (!isHost) return;
-    setShowEndGameConfirm(true);
-  };
-
-  const confirmEndGame = async () => {
-    await updateDoc(doc(db, "rooms", room.id), { status: "lobby", phase: "waiting" });
-    setShowEndGameConfirm(false);
   };
 
   const chooseBriscola = async (suit: string) => {
@@ -486,13 +474,12 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
 
                 <div className="h-px bg-white/10 w-full" />
                 <div className="flex gap-2 w-full justify-end">
-                  {isHost && (
-                    <button onClick={endGame} className="px-3 py-1.5 text-xs font-medium bg-red-500/80 text-white hover:bg-red-500 rounded-lg transition-colors shadow-lg">
-                      Termina
-                    </button>
-                  )}
-                  <button onClick={() => setShowLeaveConfirm(true)} className="p-1.5 bg-emerald-800/80 text-emerald-300 hover:text-white hover:bg-emerald-700 rounded-lg transition-colors border border-white/10 shadow-lg">
-                    <LogOut className="w-5 h-5" />
+                  <button
+                    onClick={() => setShowLeaveConfirm(true)}
+                    className="px-3 py-1.5 text-xs font-medium bg-emerald-800/80 text-emerald-300 hover:text-white hover:bg-emerald-700 rounded-lg transition-colors border border-white/10 shadow-lg flex items-center gap-1.5"
+                  >
+                    <span>Esci</span>
+                    <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
@@ -612,7 +599,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                 exit={{ height: 0 }}
                 className="bg-emerald-800/90 backdrop-blur-md border-t border-white/10 overflow-hidden"
               >
-                <div className="p-2 sm:p-4">
+                <div className="p-2 pb-4 sm:p-4">
                   <div className="grid grid-cols-5 lg:flex lg:flex-row lg:flex-nowrap lg:justify-center gap-1.5 sm:gap-2 max-w-md md:max-w-xl lg:max-w-none mx-auto px-2">
                     {sortedHand.map((card: string) => {
                       const isPlayable = isCardPlayable(card);
@@ -718,38 +705,6 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         )}
       </AnimatePresence>
 
-      {/* End Game Confirm Modal */}
-      <AnimatePresence>
-        {showEndGameConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-stone-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full shadow-2xl"
-            >
-              <h3 className="text-xl font-bold text-white mb-2">Termina partita</h3>
-              <p className="text-stone-300 mb-6">
-                Sei sicuro di voler terminare la partita e tornare alla lobby?
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowEndGameConfirm(false)}
-                  className="px-4 py-2 text-sm font-medium text-stone-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  Annulla
-                </button>
-                <button
-                  onClick={confirmEndGame}
-                  className="px-4 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg shadow-red-500/20"
-                >
-                  Termina
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
