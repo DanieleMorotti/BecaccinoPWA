@@ -15,6 +15,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [selectedCallWord, setSelectedCallWord] = useState<string | null>(null);
   const [isCallMenuOpen, setIsCallMenuOpen] = useState(false);
+  const [callAnnouncement, setCallAnnouncement] = useState<{ word: string; playerId: string } | null>(null);
+  const lastCallKeyRef = useRef<string | null>(null);
   const me = players.find((p: any) => p.id === user.uid);
   const isHost = room.hostId === user.uid;
   const order = room.playerOrder || [];
@@ -50,6 +52,26 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       setIsCallMenuOpen(false);
     }
   }, [canCall]);
+
+  useEffect(() => {
+    const table = room.table || [];
+    if (!table.length) {
+      lastCallKeyRef.current = null;
+      return;
+    }
+    const callEntry = table.find((entry: any) => entry.callWord);
+    if (!callEntry) return;
+
+    const handNumber = room.handNumber || 0;
+    const callKey = `${handNumber}-${callEntry.playerId}-${callEntry.callWord}`;
+    if (lastCallKeyRef.current === callKey) return;
+
+    lastCallKeyRef.current = callKey;
+    setCallAnnouncement({ word: callEntry.callWord, playerId: callEntry.playerId });
+
+    const timer = setTimeout(() => setCallAnnouncement(null), 2600);
+    return () => clearTimeout(timer);
+  }, [room.table, room.handNumber]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -353,7 +375,6 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     const player = players.find((p: any) => p.id === playerId);
     const entry = tableMap.get(playerId);
     const card = entry?.card;
-    const callWord = entry?.callWord;
     const isTurn = turnPlayerId === playerId && phase === "playing";
     const team = room.teamByPlayer?.[playerId];
     const isWinning = currentWinningPlayerId === playerId && (room.table?.length || 0) > 1;
@@ -380,21 +401,6 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
             </span>
           )}
         </div>
-        <AnimatePresence>
-          {callWord && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 6 }}
-              className="relative"
-            >
-              <div className="bg-white/95 text-stone-900 text-[10px] sm:text-xs font-extrabold px-3 py-1 rounded-full shadow-lg border border-stone-200/80 whitespace-nowrap">
-                {callWord}
-              </div>
-              <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-white/95" />
-            </motion.div>
-          )}
-        </AnimatePresence>
         <div className={cn(
           "w-14 h-20 sm:w-16 sm:h-24 rounded-lg bg-black/10 flex items-center justify-center transition-all relative",
           isWinning ? "border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)]" : "border border-white/10"
@@ -537,6 +543,22 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
 
         {/* Trick Winner Overlay */}
         <AnimatePresence>
+          {callAnnouncement && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none"
+            >
+              <div className="bg-amber-400/95 text-amber-950 px-6 py-3 rounded-2xl shadow-2xl border border-amber-300/70 text-center min-w-[200px]">
+                <div className="text-[10px] uppercase tracking-widest font-semibold">Chiamata</div>
+                <div className="text-lg font-sans font-bold leading-tight">{callAnnouncement.word}</div>
+                <div className="text-[11px] text-amber-900/80 mt-0.5">
+                  da {players.find((p: any) => p.id === callAnnouncement.playerId)?.name || "--"}
+                </div>
+              </div>
+            </motion.div>
+          )}
           {phase === "trick_end" && room.trickWinnerId && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
