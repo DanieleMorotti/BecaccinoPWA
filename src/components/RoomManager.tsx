@@ -54,32 +54,9 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
     };
   }, [roomId, onLeave]);
 
-  // Heartbeat and beforeunload
+  // Heartbeat
   useEffect(() => {
     if (!room) return;
-
-    const handleBeforeUnload = () => {
-      if (room.hostId === user.uid) {
-        updateDoc(doc(db, 'rooms', roomId), { status: 'closed', closedReason: "L'host ha chiuso la stanza." }).catch(() => {});
-      } else {
-        if (room.status === 'playing') {
-          const me = players.find(p => p.id === user.uid);
-          const playerName = me?.name || 'Un giocatore';
-          updateDoc(doc(db, 'rooms', roomId), { 
-            status: 'lobby', 
-            phase: 'waiting',
-            lobbyReason: `${playerName} ha abbandonato la stanza.`,
-            playerIds: arrayRemove(user.uid)
-          }).catch(() => {});
-          deleteDoc(doc(db, 'rooms', roomId, 'players', user.uid)).catch(() => {});
-        } else {
-          deleteDoc(doc(db, 'rooms', roomId, 'players', user.uid)).catch(() => {});
-          updateDoc(doc(db, 'rooms', roomId), { playerIds: arrayRemove(user.uid) }).catch(() => {});
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
 
     const pingInterval = setInterval(() => {
       updateDoc(doc(db, 'rooms', roomId, 'players', user.uid), {
@@ -88,7 +65,6 @@ export default function RoomManager({ roomId, onLeave, user }: RoomManagerProps)
     }, 10000);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       clearInterval(pingInterval);
     };
   }, [roomId, user.uid, room]);
