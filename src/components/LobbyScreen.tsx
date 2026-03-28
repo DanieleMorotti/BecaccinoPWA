@@ -202,11 +202,11 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
               </h2>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {players.map((player: any) => (
-                <div key={player.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold shrink-0">
+                <div key={player.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold shrink-0">
                       {player.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -224,7 +224,7 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
                       value={player.team || ""}
                       onChange={(e) => updateTeam(player.id, e.target.value)}
                       disabled={!isHost}
-                      className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-emerald-50/60 border border-emerald-200 text-sm font-medium text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-70 disabled:bg-emerald-50/40"
+                      className="flex-1 sm:flex-none px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-emerald-50/60 border border-emerald-200 text-sm font-medium text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-70 disabled:bg-emerald-50/40"
                     >
                       <option value="">Nessuna squadra</option>
                       <option value="A">Squadra A</option>
@@ -244,9 +244,9 @@ export default function LobbyScreen({ room, players, user, onLeave }: any) {
               ))}
               
               {Array.from({ length: MAX_PLAYERS - players.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/70 border-dashed">
-                  <div className="flex items-center gap-3 opacity-50">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-400">
+                <div key={`empty-${i}`} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/70 border-dashed">
+                  <div className="flex items-center gap-2 sm:gap-3 opacity-50">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-400">
                       ?
                     </div>
                     <p className="font-medium text-emerald-600">In attesa...</p>
