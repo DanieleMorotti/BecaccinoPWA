@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { CACHE_SIZE_UNLIMITED, initializeFirestore } from "firebase/firestore";
 
 const requiredEnv = [
   "VITE_FIREBASE_API_KEY",
@@ -26,9 +26,35 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID as string,
 };
 
+const detectUnstableRealtimeEnvironment = () => {
+  if (typeof window == "undefined" || typeof navigator == "undefined") {
+    return false;
+  }
+
+  const ua = navigator.userAgent || "";
+  const isIos = 
+    /iPhone|iPad|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|EdgiOS/.test(ua);
+  const isStandalone = 
+    window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean((navigator as Navigator & {standalone?: boolean}).standalone);
+
+  return isIos || isSafari || isStandalone;
+};
+
+const shouldPreferLongPolling = detectUnstableRealtimeEnvironment();
+
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// We use initializeFirestore to set specific networking properties.
+// On iOS/Safari, we MUST use long-polling to avoid the 2-3 second buffering delay imposed by Safari
+export const db = initializeFirestore(app, {
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+  experimentalForceLongPolling: shouldPreferLongPolling,
+});
 
 export const ensureAuth = async () => {
   if (!auth.currentUser) {
