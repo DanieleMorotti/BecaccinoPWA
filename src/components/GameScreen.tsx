@@ -8,16 +8,21 @@ import { cn } from "../lib/utils";
 import { toast } from "sonner";
 
 export default function GameScreen({ room, players, user, onLeave }: any) {
+  const CALL_WORDS = ["Busso", "Striscio lungo", "Striscio corto", "Volo"];
   const [isHandOpen, setIsHandOpen] = useState(window.innerWidth >= 900);
   const [selectedCardToPlay, setSelectedCardToPlay] = useState<string | null>(null);
   const [isScoresOpen, setIsScoresOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [selectedCallWord, setSelectedCallWord] = useState<string | null>(null);
+  const [isCallMenuOpen, setIsCallMenuOpen] = useState(false);
   const me = players.find((p: any) => p.id === user.uid);
   const isHost = room.hostId === user.uid;
   const order = room.playerOrder || [];
   const turnPlayerId = order[room.turnIndex];
   const isMyTurn = turnPlayerId === user.uid;
   const phase = room.phase;
+  const isLead = (room.table?.length || 0) === 0;
+  const canCall = isMyTurn && phase === "playing" && !!room.briscolaSuit && isLead;
   const tableBgUrl = `${import.meta.env.BASE_URL}assets/table.jpg`;
 
   useEffect(() => {
@@ -38,6 +43,13 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!canCall) {
+      setSelectedCallWord(null);
+      setIsCallMenuOpen(false);
+    }
+  }, [canCall]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -63,7 +75,7 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
   };
 
   const seatMap = getSeatMap();
-  const tableMap = new Map((room.table || []).map((entry: any) => [entry.playerId, entry.card]));
+  const tableMap = new Map((room.table || []).map((entry: any) => [entry.playerId, entry]));
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const handleLeave = async () => {
@@ -145,7 +157,12 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
       }
 
       hand.splice(index, 1);
-      const table = [...(currentRoom.table || []), { playerId: user.uid, card }];
+      const isLeadPlay = !(currentRoom.table?.length);
+      const tableEntry: any = { playerId: user.uid, card };
+      if (isLeadPlay && selectedCallWord) {
+        tableEntry.callWord = selectedCallWord;
+      }
+      const table = [...(currentRoom.table || []), tableEntry];
 
       let nextIndex = (currentRoom.turnIndex - 1 + order.length) % order.length;
 
@@ -174,6 +191,8 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
         turnIndex: nextIndex,
       });
     });
+    setSelectedCallWord(null);
+    setIsCallMenuOpen(false);
   };
 
   useEffect(() => {
@@ -332,7 +351,9 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
 
   const renderSeat = (position: string, playerId: string) => {
     const player = players.find((p: any) => p.id === playerId);
-    const card = tableMap.get(playerId);
+    const entry = tableMap.get(playerId);
+    const card = entry?.card;
+    const callWord = entry?.callWord;
     const isTurn = turnPlayerId === playerId && phase === "playing";
     const team = room.teamByPlayer?.[playerId];
     const isWinning = currentWinningPlayerId === playerId && (room.table?.length || 0) > 1;
@@ -359,6 +380,21 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
             </span>
           )}
         </div>
+        <AnimatePresence>
+          {callWord && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 6 }}
+              className="relative"
+            >
+              <div className="bg-white/95 text-stone-900 text-[10px] sm:text-xs font-extrabold px-3 py-1 rounded-full shadow-lg border border-stone-200/80 whitespace-nowrap">
+                {callWord}
+              </div>
+              <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-white/95" />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className={cn(
           "w-14 h-20 sm:w-16 sm:h-24 rounded-lg bg-black/10 flex items-center justify-center transition-all relative",
           isWinning ? "border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)]" : "border border-white/10"
@@ -600,6 +636,42 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
                 className="bg-emerald-800/90 backdrop-blur-md border-t border-white/10 overflow-hidden"
               >
                 <div className="p-2 pb-4 sm:p-4">
+                  {canCall && (
+                    <div className="px-2 pb-3 flex flex-col items-center gap-2">
+                      <div className="hidden sm:flex items-center gap-2 bg-emerald-900/70 border border-white/10 rounded-full px-3 py-1">
+                        <span className="text-[10px] uppercase tracking-wider text-emerald-200">Parola</span>
+                        {CALL_WORDS.map((word) => (
+                          <button
+                            key={word}
+                            onClick={() => setSelectedCallWord(word)}
+                            className={cn(
+                              "px-3 py-1 rounded-full text-xs font-semibold border transition-colors",
+                              selectedCallWord === word
+                                ? "bg-amber-400 text-amber-950 border-amber-500"
+                                : "bg-emerald-950/60 text-emerald-100 border-white/10 hover:bg-emerald-700/70"
+                            )}
+                          >
+                            {word}
+                          </button>
+                        ))}
+                        {selectedCallWord && (
+                          <button
+                            onClick={() => setSelectedCallWord(null)}
+                            className="px-2 py-1 rounded-full text-[11px] font-semibold text-emerald-200 hover:text-white hover:bg-emerald-700/70 border border-white/10 transition-colors"
+                          >
+                            Annulla
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setIsCallMenuOpen(true)}
+                        className="sm:hidden w-full max-w-xs bg-emerald-900/80 border border-white/10 rounded-xl px-4 py-2 text-xs font-semibold flex items-center justify-between text-emerald-100"
+                      >
+                        <span>{selectedCallWord ? `Parola: ${selectedCallWord}` : "Scegli parola"}</span>
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-5 lg:flex lg:flex-row lg:flex-nowrap lg:justify-center gap-1.5 sm:gap-2 max-w-md md:max-w-xl lg:max-w-none mx-auto px-2">
                     {sortedHand.map((card: string) => {
                       const isPlayable = isCardPlayable(card);
@@ -634,6 +706,54 @@ export default function GameScreen({ room, players, user, onLeave }: any) {
           </AnimatePresence>
         </div>
       )}
+      {/* Call Word Mobile Sheet */}
+      <AnimatePresence>
+        {canCall && isCallMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 sm:hidden bg-black/40 backdrop-blur-[2px] flex items-end"
+            onClick={() => setIsCallMenuOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              exit={{ y: 40 }}
+              className="w-full bg-emerald-900 text-white rounded-t-3xl p-4 border-t border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs uppercase tracking-wider text-emerald-200">Scegli parola</span>
+                {selectedCallWord && (
+                  <button
+                    onClick={() => { setSelectedCallWord(null); setIsCallMenuOpen(false); }}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-red-400/40 bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                  >
+                    Nessuna
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {CALL_WORDS.map((word) => (
+                  <button
+                    key={word}
+                    onClick={() => { setSelectedCallWord(word); setIsCallMenuOpen(false); }}
+                    className={cn(
+                      "py-3 rounded-2xl text-sm font-semibold border transition-colors",
+                      selectedCallWord === word
+                        ? "bg-amber-400 text-amber-950 border-amber-500"
+                        : "bg-emerald-800/70 text-emerald-100 border-white/10"
+                    )}
+                  >
+                    {word}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* End Game Overlay */}
       {room.status === "ended" && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
